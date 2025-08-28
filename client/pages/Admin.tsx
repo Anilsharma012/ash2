@@ -480,36 +480,44 @@ export default function Admin() {
       errors.push("Users API unreachable");
     }
 
-    // Fetch properties with individual error handling
+    // Fetch properties with centralized client and fallback retry
     try {
       console.log("Fetching admin properties...");
-      const propertiesResponse = await fetch(
-        createApiUrl("admin/properties?limit=10"),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (propertiesResponse.ok) {
-        const propertiesData = await propertiesResponse.json();
-        console.log("Properties data received:", propertiesData);
-        if (propertiesData.success) {
-          setProperties(propertiesData.data.properties);
-        } else {
-          console.error("Properties fetch failed:", propertiesData.error);
-          errors.push("Properties API failed");
-        }
+      const propsData = await adminApi.getProperties(token, 10);
+      if (propsData.success) {
+        setProperties(propsData.data.properties || propsData.properties || []);
       } else {
-        console.error(
-          "Properties response not ok:",
-          propertiesResponse.status,
-          propertiesResponse.statusText,
-        );
-        errors.push(`Properties API error: ${propertiesResponse.status}`);
+        console.error("Properties fetch failed:", propsData.error);
+        errors.push("Properties API failed");
       }
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-      errors.push("Properties API unreachable");
+    } catch (error: any) {
+      console.error("Error fetching properties (primary):", error?.message || error);
+      // Fallback: direct fetch with small limit and no-cache, retry once
+      try {
+        const url = createApiUrl("admin/properties?limit=5");
+        console.log("Retrying properties via:", url);
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 8000);
+        const resp = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
+          cache: "no-cache",
+          signal: controller.signal,
+        });
+        clearTimeout(t);
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json?.success) {
+            setProperties(json.data?.properties || []);
+          } else {
+            errors.push("Properties API failed");
+          }
+        } else {
+          errors.push(`Properties API error: ${resp.status}`);
+        }
+      } catch (fallbackError: any) {
+        console.error("Error fetching properties (fallback):", fallbackError?.message || fallbackError);
+        errors.push("Properties API unreachable");
+      }
     }
 
     setApiErrors(errors);
