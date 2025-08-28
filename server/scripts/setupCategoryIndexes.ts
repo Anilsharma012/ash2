@@ -48,8 +48,8 @@ export async function setupCategoryIndexes() {
   }
 }
 
-// Run if called directly
-if (require.main === module) {
+// Run if called directly (ESM-safe)
+if (import.meta.url === `file://${process.argv[1]}`) {
   setupCategoryIndexes()
     .then(() => {
       console.log("✅ Index setup complete");
