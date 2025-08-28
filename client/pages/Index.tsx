@@ -10,6 +10,7 @@ import HomepageBanner from "../components/HomepageBanner";
 import StaticFooter from "../components/StaticFooter";
 import HeroImageSlider from "../components/HeroImageSlider";
 import PropertyAdsSlider from "../components/PropertyAdsSlider";
+import HomeCategoriesStrip from "../components/HomeCategoriesStrip";
 
 export default function Index() {
   return (
