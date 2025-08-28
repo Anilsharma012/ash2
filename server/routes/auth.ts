@@ -341,11 +341,59 @@ export const loginUser: RequestHandler = async (req, res) => {
     };
 
     res.json(response);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error logging in user:", error);
-    res.status(500).json({
+
+    // Development fallback: allow demo admin login when DB is unavailable
+    const isDbInitError =
+      error && typeof error.message === "string" && error.message.includes("Database not initialized");
+    const isDev = process.env.NODE_ENV !== "production";
+
+    const { email, username, password, userType } = (req as any).body || {};
+    const isDemoAdminCreds =
+      ((email && String(email).toLowerCase() === "admin@aashishproperty.com") ||
+        (username && String(username).toLowerCase() === "admin")) &&
+      password === "admin123";
+
+    if (isDev && isDbInitError && (userType === "admin" || username) && isDemoAdminCreds) {
+      const demoUser = {
+        id: "demo-admin",
+        name: "Demo Admin",
+        email: email || "admin@aashishproperty.com",
+        phone: "+919876543210",
+        userType: "admin",
+        role: "super_admin",
+        permissions: ["*"],
+        isFirstLogin: false,
+        lastLogin: new Date().toISOString(),
+        username: username || "admin",
+      };
+
+      const token = jwt.sign(
+        {
+          userId: demoUser.id,
+          userType: demoUser.userType,
+          email: demoUser.email,
+          role: demoUser.role,
+        },
+        JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+
+      const response: ApiResponse<{ token: string; user: any }> = {
+        success: true,
+        data: { token, user: demoUser },
+        message: "Demo admin login (DB offline)",
+      };
+
+      return res.status(200).json(response);
+    }
+
+    const status = isDbInitError ? 503 : 500;
+    return res.status(status).json({
       success: false,
-      error: "Failed to login",
+      error: isDbInitError ? "Service unavailable: database connection failed" : "Failed to login",
+      message: error?.message,
     });
   }
 };
