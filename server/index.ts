@@ -760,6 +760,14 @@ export function createServer() {
     seedSampleCategories,
   );
 
+  // Dev seed endpoint (JWT or x-admin:true)
+  app.post(
+    "/api/admin/dev/seed",
+    authenticateToken,
+    requireAdmin,
+    devSeedCategories,
+  );
+
   // ADMIN Subcategory routes
   app.get(
     "/api/admin/subcategories",
