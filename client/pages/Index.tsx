@@ -1,6 +1,7 @@
 import React from "react";
 import OLXStyleHeader from "../components/OLXStyleHeader";
-import CategoryBar from "../components/CategoryBar";
+import OLXStyleCategories from "../components/OLXStyleCategories";
+import TopBanner from "../components/TopBanner";
 import OLXStyleListings from "../components/OLXStyleListings";
 import PackagesShowcase from "../components/PackagesShowcase";
 import PWAInstallPrompt from "../components/PWAInstallPrompt";
@@ -16,13 +17,17 @@ export default function Index() {
     <div className="min-h-screen bg-white">
       <OLXStyleHeader />
       <main className="pb-16 bg-gradient-to-b from-red-50 to-white">
+        {/* Big banner above hero */}
+        <TopBanner />
+
         {/* Hero Image Slider */}
         <HeroImageSlider />
 
         {/* Property Ads Slider */}
         <PropertyAdsSlider />
 
-        <CategoryBar />
+        {/* Dynamic Categories */}
+        <OLXStyleCategories />
 
         {/* Mid-size banner below categories */}
         <div className="px-4 mb-6 bg-white py-6">
