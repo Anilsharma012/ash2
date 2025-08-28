@@ -1090,6 +1090,8 @@ export default function Admin() {
           return <AdminBanners token={token} />;
         case "feature-section":
           return <PropertyManagement />;
+        case "home-categories":
+          return <CompleteCategoryManagement />;
         case "countries":
           return <CategoryManagement />;
         case "states":
