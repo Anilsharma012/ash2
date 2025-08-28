@@ -31,8 +31,8 @@ function api(p: string, o: any = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
-    console.warn("⏰ API request timeout after 10 seconds:", url);
-  }, 10000);
+    console.warn("⏰ API request timeout after 15 seconds:", url);
+  }, 15000);
 
   return fetch(url, {
     method: o.method || "GET",
