@@ -471,45 +471,44 @@ export function createServer() {
   const app = express();
 
   const allowedOrigins = [
-    "https://aproperty.netlify.app", // Keep Netlify for backwards compatibility
-    "http://localhost:5173", // Development
-    "https://295329d1a890466f9bcbc004dd730a35-0776d79bc1304d9390d1d56e1.fly.dev", // Old Fly.dev
-    "https://880833dcecc84a92861ca2f5c11ffbe5-ddcc24fd377b44659b202fb89.fly.dev", // Current Fly.dev
-    "https://880833dcecc84a92861ca2f5c11ffbe5-ddcc24fd377b44659b202fb89.fly.dev.projects.builder.codes", // Builder.io environment
-    "https://aashish.posttrr.com", // Hostinger production domain
-    "http://aashish.posttrr.com", // HTTP fallback (will redirect to HTTPS)
+    "https://aproperty.netlify.app",
+    "http://localhost:5173",
+    "https://295329d1a890466f9bcbc004dd730a35-0776d79bc1304d9390d1d56e1.fly.dev",
+    "https://880833dcecc84a92861ca2f5c11ffbe5-ddcc24fd377b44659b202fb89.fly.dev",
+    "https://880833dcecc84a92861ca2f5c11ffbe5-ddcc24fd377b44659b202fb89.fly.dev.projects.builder.codes",
+    "https://aashish.posttrr.com",
+    "http://aashish.posttrr.com",
+  ];
+
+  const allowedOriginPatterns = [
+    /^(https?:\/\/)?([a-z0-9-]+\.)*localhost(:\d+)?$/i,
+    /^(https?:\/\/)?([a-z0-9-]+\.)*fly\.dev(\.projects\.builder\.codes)?$/i,
+    /^(https?:\/\/)?([a-z0-9-]+\.)*projects\.builder\.codes$/i,
+    /^(https?:\/\/)?([a-z0-9-]+\.)*builder\.codes$/i,
+    /^(https?:\/\/)?([a-z0-9-]+\.)*netlify\.app$/i,
+    /^https?:\/\/aashish\.posttrr\.com$/i,
+    /^http?:\/\/aashish\.posttrr\.com$/i,
   ];
 
   app.use(
     cors({
       origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, Postman, server-to-server)
         if (!origin) return callback(null, true);
 
-        // In development, allow any localhost, fly.dev, or builder.codes origin
-        if (process.env.NODE_ENV !== "production") {
-          if (
-            origin?.includes("localhost") ||
-            origin?.includes(".fly.dev") ||
-            origin?.includes(".builder.codes") ||
-            origin?.includes("projects.builder.codes")
-          ) {
-            console.log("✅ CORS allowed for development origin:", origin);
-            return callback(null, true);
-          }
-        }
-
-        // Check if the origin is in our allowed list
+        // Allow listed exact origins
         if (allowedOrigins.includes(origin)) {
-          console.log("�� CORS allowed for origin:", origin);
+          console.log("✅ CORS allowed (exact):", origin);
           return callback(null, true);
         }
 
-        // Log and block unauthorized origins
-        console.log("❌ CORS blocked for origin:", origin);
-        return callback(
-          new Error(`CORS policy violation: Origin ${origin} not allowed`),
-        );
+        // Allow pattern-based origins (covers dynamic Fly.dev and Builder preview URLs) in all environments
+        if (allowedOriginPatterns.some((re) => re.test(origin))) {
+          console.log("✅ CORS allowed (pattern):", origin);
+          return callback(null, true);
+        }
+
+        console.log("❌ CORS blocked:", origin);
+        return callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
