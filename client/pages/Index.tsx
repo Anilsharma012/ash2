@@ -10,6 +10,7 @@ import HomepageBanner from "../components/HomepageBanner";
 import StaticFooter from "../components/StaticFooter";
 import HeroImageSlider from "../components/HeroImageSlider";
 import PropertyAdsSlider from "../components/PropertyAdsSlider";
+import HomeCategoriesStrip from "../components/HomeCategoriesStrip";
 
 export default function Index() {
   return (
@@ -23,6 +24,7 @@ export default function Index() {
         <PropertyAdsSlider />
 
         <CategoryBar />
+        <HomeCategoriesStrip />
 
         {/* Mid-size banner below categories */}
         <div className="px-4 mb-6 bg-white py-6">

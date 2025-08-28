@@ -1,14 +1,10 @@
+
+
 import { MongoClient, Db } from "mongodb";
 
-// URL encode the password to handle special characters
-const username = "Aashishpropeorty";
-const password = "SATYAKA123"; // Using the exact password provided
-const cluster = "property.zn2cowc.mongodb.net";
-
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  `mongodb+srv://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${cluster}/Use?retryWrites=true&w=majority&appName=Property`;
-const DB_NAME = process.env.DB_NAME || "aashish_property";
+const DEFAULT_LOCAL_URI = "mongodb://127.0.0.1:27017/aashish_property";
+const MONGODB_URI = process.env.MONGODB_URI || DEFAULT_LOCAL_URI;
+const DB_NAME = process.env.DB_NAME || (process.env.MONGODB_DB || "aashish_property");
 
 let client: MongoClient;
 let db: Db;
@@ -20,41 +16,27 @@ export async function connectToDatabase() {
   }
 
   try {
-    console.log("🔄 Connecting to MongoDB Atlas...");
-    console.log("🔗 Connection string:", MONGODB_URI.replace(password, "***"));
-    console.log("👤 Username:", username);
-    console.log("🌐 Cluster:", cluster);
+    console.log("🔄 Connecting to MongoDB...");
     console.log("📊 Target Database:", DB_NAME);
 
     client = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 15000, // 15 seconds
-      connectTimeoutMS: 20000, // 20 seconds
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 20000,
       maxPoolSize: 10,
       retryWrites: true,
       retryReads: true,
       maxIdleTimeMS: 30000,
       heartbeatFrequencyMS: 10000,
-      // Add auth source
-      authSource: "admin",
-      // SSL/TLS options
-      tls: true,
-      tlsAllowInvalidCertificates: false,
-      tlsAllowInvalidHostnames: false,
     });
 
-    console.log("🤝 Attempting to connect...");
     await client.connect();
-    console.log("✅ Client connected to MongoDB Atlas");
 
-    // Test the connection with admin command
-    console.log("🏓 Testing connection with ping...");
-    const pingResult = await client.db("admin").command({ ping: 1 });
-    console.log("🏓 Ping result:", pingResult);
+    // Test the connection with ping
+    await client.db(DB_NAME).command({ ping: 1 });
 
     // Get the database
     db = client.db(DB_NAME);
-    console.log("✅ Connected to MongoDB Atlas successfully!");
-    console.log("📊 Database:", DB_NAME);
+    console.log("✅ MongoDB connected");
 
     // Test database access
     const stats = await db.stats();
@@ -66,7 +48,7 @@ export async function connectToDatabase() {
 
     return { client, db };
   } catch (error: any) {
-    console.error("❌ Failed to connect to MongoDB Atlas:");
+    console.error("❌ Failed to connect to MongoDB:");
     console.error("📋 Error details:", {
       name: error.name,
       message: error.message,

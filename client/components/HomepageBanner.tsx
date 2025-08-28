@@ -39,7 +39,7 @@ export default function HomepageBanner({
         controller.abort();
       }, 8000);
 
-      const response = await fetch(`/api/banners/${position}`, {
+      const response = await fetch(`/api/banners?active=true`, {
         signal: controller.signal,
         cache: "no-cache",
       });
@@ -116,7 +116,7 @@ export default function HomepageBanner({
           {/* Banner Image */}
           <div className="relative">
             <img
-              src={currentBanner.image}
+              src={currentBanner.imageUrl}
               alt={currentBanner.title}
               className="w-full h-24 md:h-32 object-cover rounded-lg"
               onError={(e) => {
@@ -136,9 +136,7 @@ export default function HomepageBanner({
               <h3 className="text-sm md:text-lg font-bold leading-tight">
                 {currentBanner.title}
               </h3>
-              <p className="text-xs md:text-sm opacity-90 mt-1 line-clamp-2">
-                {currentBanner.description}
-              </p>
+              {/* No description field in BannerAd schema; hide if not provided */}
             </div>
 
             {/* Call-to-action arrow */}

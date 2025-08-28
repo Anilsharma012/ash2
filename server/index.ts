@@ -48,6 +48,15 @@ import {
   getSubcategoriesByCategory as getSubcategoriesByCategoryAdmin,
 } from "./routes/subcategories-new";
 
+// Category sample data seeding (admin)
+import { seedSampleCategories } from "./routes/admin-categories-sample";
+// Dev seeding route per spec
+import { devSeedCategories } from "./routes/dev-seed";
+// Public categories single response
+import { getPublicCategories } from "./routes/public-categories";
+// Maintenance route
+import { runCategoryMaintenance } from "./routes/fix-categories";
+
 // Service listings routes
 import {
   getServiceListings,
@@ -701,6 +710,8 @@ export function createServer() {
     "/api/categories/:categorySlug/subcategories",
     getSubcategoriesByCategory,
   );
+  // New public single response for frontend
+  app.get("/api/public/categories", getPublicCategories);
 
   // ADMIN Category routes
   app.get(
@@ -745,6 +756,36 @@ export function createServer() {
     requireAdmin,
     uploadCategoryIcon,
     handleIconUpload,
+  );
+
+  // Seed sample categories and subcategories for testing
+  app.post(
+    "/api/admin/categories/sample-data",
+    authenticateToken,
+    requireAdmin,
+    seedSampleCategories,
+  );
+
+  // Dev seed endpoint (JWT or x-admin:true)
+  app.post(
+    "/api/admin/dev/seed",
+    authenticateToken,
+    requireAdmin,
+    devSeedCategories,
+  );
+  // Alias per spec: /api/admin/dev/seed-categories
+  app.post(
+    "/api/admin/dev/seed-categories",
+    authenticateToken,
+    requireAdmin,
+    devSeedCategories,
+  );
+  // Maintenance endpoint to fix slugs + active flags
+  app.post(
+    "/api/admin/dev/fix-categories",
+    authenticateToken,
+    requireAdmin,
+    runCategoryMaintenance,
   );
 
   // ADMIN Subcategory routes

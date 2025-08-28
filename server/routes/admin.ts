@@ -203,29 +203,70 @@ export const exportUsers: RequestHandler = async (req, res) => {
 // Get user statistics
 export const getUserStats: RequestHandler = async (req, res) => {
   try {
-    const db = getDatabase();
+    let db;
+    try {
+      db = getDatabase();
+    } catch (e: any) {
+      console.log(
+        "🔄 DB not ready in stats, attempting connect...",
+        e?.message,
+      );
+      const { connectToDatabase } = await import("../db/mongodb");
+      const conn = await connectToDatabase();
+      db = conn.db;
+    }
 
-    // Test database connection
-    await db.admin().ping();
-    console.log("✅ Database connection verified for admin stats");
+    let usersByType: any[] = [];
+    let totalUsers = 0;
+    let totalProperties = 0;
+    let activeProperties = 0;
+    let degraded = false;
 
-    const stats = await db
-      .collection("users")
-      .aggregate([
-        {
-          $group: {
-            _id: "$userType",
-            count: { $sum: 1 },
-          },
-        },
-      ])
-      .toArray();
+    try {
+      usersByType = await db
+        .collection("users")
+        .aggregate([{ $group: { _id: "$userType", count: { $sum: 1 } } }])
+        .toArray();
+    } catch (e) {
+      console.warn(
+        "⚠️ usersByType aggregation failed:",
+        (e as any)?.message || e,
+      );
+      degraded = true;
+      usersByType = [];
+    }
 
-    const totalUsers = await db.collection("users").countDocuments();
-    const totalProperties = await db.collection("properties").countDocuments();
-    const activeProperties = await db
-      .collection("properties")
-      .countDocuments({ status: "active" });
+    try {
+      totalUsers = await db.collection("users").countDocuments();
+    } catch (e) {
+      console.warn("⚠️ totalUsers count failed:", (e as any)?.message || e);
+      degraded = true;
+      totalUsers = 0;
+    }
+
+    try {
+      totalProperties = await db.collection("properties").countDocuments();
+    } catch (e) {
+      console.warn(
+        "⚠️ totalProperties count failed:",
+        (e as any)?.message || e,
+      );
+      degraded = true;
+      totalProperties = 0;
+    }
+
+    try {
+      activeProperties = await db
+        .collection("properties")
+        .countDocuments({ status: "active" });
+    } catch (e) {
+      console.warn(
+        "⚠️ activeProperties count failed:",
+        (e as any)?.message || e,
+      );
+      degraded = true;
+      activeProperties = 0;
+    }
 
     const response: ApiResponse<{
       totalUsers: number;
@@ -238,16 +279,24 @@ export const getUserStats: RequestHandler = async (req, res) => {
         totalUsers,
         totalProperties,
         activeProperties,
-        usersByType: stats,
+        usersByType,
       },
-    };
+      meta: degraded ? { degraded: true } : undefined,
+    } as any;
 
     res.json(response);
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch statistics",
+  } catch (error: any) {
+    console.error("Error fetching stats:", error?.message || error);
+    // As a last resort, return degraded empty stats instead of 500 to avoid breaking admin
+    res.json({
+      success: true,
+      data: {
+        totalUsers: 0,
+        totalProperties: 0,
+        activeProperties: 0,
+        usersByType: [],
+      },
+      meta: { degraded: true, error: error?.message || String(error) },
     });
   }
 };
@@ -606,6 +655,30 @@ export const getAdminCategories: RequestHandler = async (req, res) => {
   }
 };
 
+function slugifyCategoryName(name: string): string {
+  return (name || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
+async function ensureUniqueCategorySlug(
+  db: any,
+  base: string,
+): Promise<string> {
+  let baseSlug = slugifyCategoryName(base);
+  if (!baseSlug) baseSlug = "category";
+  let slug = baseSlug;
+  let i = 2;
+  while (await db.collection("categories").findOne({ slug })) {
+    slug = `${baseSlug}-${i++}`;
+  }
+  return slug;
+}
+
 // Create new category
 export const createCategory: RequestHandler = async (req, res) => {
   try {
@@ -619,42 +692,70 @@ export const createCategory: RequestHandler = async (req, res) => {
       order,
     } = req.body;
 
-    // Check if slug already exists
-    const existingCategory = await db
-      .collection("categories")
-      .findOne({ slug });
-
-    if (existingCategory) {
-      return res.status(400).json({
-        success: false,
-        error: "Category with this slug already exists",
-      });
+    if (!name || typeof name !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, error: "Name is required" });
     }
 
-    const newCategory: Omit<Category, "_id"> = {
-      name,
-      slug,
-      icon,
-      description,
-      subcategories,
-      order: order || 999,
+    const finalSlug =
+      slug && typeof slug === "string" && slug.trim()
+        ? await ensureUniqueCategorySlug(db, slug)
+        : await ensureUniqueCategorySlug(db, name);
+
+    const newCategory: any = {
+      name: name.trim(),
+      slug: finalSlug,
+      icon: icon || "🏷️",
+      description: description || "",
+      subcategories: Array.isArray(subcategories) ? subcategories : [],
+      order: typeof order === "number" ? order : 999,
       active: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const result = await db.collection("categories").insertOne(newCategory);
 
-    const response: ApiResponse<{ _id: string }> = {
+    const response: ApiResponse<{ _id: string; slug: string }> = {
       success: true,
-      data: { _id: result.insertedId.toString() },
+      data: { _id: result.insertedId.toString(), slug: finalSlug },
     };
 
     res.json(response);
-  } catch (error) {
-    console.error("Error creating category:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to create category",
-    });
+  } catch (error: any) {
+    console.error("Error creating category:", error?.message || error);
+    if (error?.code === 11000) {
+      // Unique index race condition; try once more with suffix
+      try {
+        const db = getDatabase();
+        const { name, icon, description, subcategories = [], order } = req.body;
+        const altSlug = await ensureUniqueCategorySlug(
+          db,
+          `${name}-${Date.now()}`,
+        );
+        const result = await db.collection("categories").insertOne({
+          name: name.trim(),
+          slug: altSlug,
+          icon: icon || "🏷️",
+          description: description || "",
+          subcategories: Array.isArray(subcategories) ? subcategories : [],
+          order: typeof order === "number" ? order : 999,
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        return res.json({
+          success: true,
+          data: { _id: result.insertedId.toString(), slug: altSlug },
+        });
+      } catch (e: any) {
+        console.error("Second attempt failed:", e?.message || e);
+      }
+    }
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to create category" });
   }
 };
 

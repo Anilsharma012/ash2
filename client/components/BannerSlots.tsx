@@ -26,7 +26,7 @@ export default function BannerSlots({
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/banners/${position}`);
+      const response = await fetch(`/api/banners?active=true`);
       const data = await response.json();
 
       if (data.success) {
@@ -76,9 +76,12 @@ export default function BannerSlots({
           }`}
         >
           <img
-            src={banner.image}
+            src={banner.imageUrl}
             alt={banner.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
           />
 
           {/* Overlay */}
@@ -89,11 +92,7 @@ export default function BannerSlots({
             <h3 className="text-white text-lg md:text-xl font-bold mb-2 drop-shadow-lg">
               {banner.title}
             </h3>
-            {banner.description && (
-              <p className="text-white text-sm md:text-base drop-shadow-lg opacity-90">
-                {banner.description}
-              </p>
-            )}
+            {/* Description is optional; schema has no description field */}
 
             {banner.link && (
               <button

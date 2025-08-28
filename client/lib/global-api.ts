@@ -29,10 +29,11 @@ function api(p: string, o: any = {}) {
 
   // Add timeout and better error handling
   const controller = new AbortController();
+  const timeoutMs = 15000;
   const timeoutId = setTimeout(() => {
     controller.abort();
-    console.warn("⏰ API request timeout after 10 seconds:", url);
-  }, 10000);
+    console.warn(`⏰ API request timeout after ${timeoutMs}ms:`, url);
+  }, timeoutMs);
 
   return fetch(url, {
     method: o.method || "GET",
@@ -64,15 +65,18 @@ function api(p: string, o: any = {}) {
         json: data, // Keep for compatibility
       };
     })
-    .catch((error) => {
+    .catch((error: any) => {
       clearTimeout(timeoutId);
 
-      console.error("❌ Global API error:", {
-        url: url,
+      // Log primary error as a single string to avoid [object Object]
+      console.error(`❌ Global API error: ${error?.name || "Error"}: ${error?.message || error} (${url})`);
+      // Detailed context (debug only)
+      console.debug("🌐 Global API error details:", {
+        url,
         endpoint: p,
-        error: error.message,
-        name: error.name,
-        type: error.constructor.name,
+        message: error?.message,
+        name: error?.name,
+        type: error?.constructor?.name,
       });
 
       // Provide more specific error messages

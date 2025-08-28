@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { getDatabase } from "../db/mongodb";
+import { getDatabase, connectToDatabase } from "../db/mongodb";
 import { AdPackage, Transaction, ApiResponse } from "@shared/types";
 import { ObjectId, Db } from "mongodb";
 
@@ -80,7 +80,99 @@ async function initializePackagesInternal(db: Db) {
 // Get all advertisement packages
 export const getAdPackages: RequestHandler = async (req, res) => {
   try {
-    const db = getDatabase();
+    let db;
+    // Try to get DB quickly, with fast fallback if connection is slow/unavailable
+    const connectWithTimeout = async (ms: number) => {
+      return await Promise.race([
+        (async () => {
+          const connection = await connectToDatabase();
+          return connection.db;
+        })(),
+        new Promise<Db>((_, reject) =>
+          setTimeout(() => reject(new Error("DB_CONNECT_TIMEOUT")), ms),
+        ),
+      ]);
+    };
+
+    try {
+      db = getDatabase();
+    } catch (e) {
+      console.warn("⚠️ Database not initialized for packages. Attempting to connect...");
+      try {
+        db = await connectWithTimeout(3000);
+      } catch (err: any) {
+        console.warn("⏰ DB connect timed out quickly. Serving fallback packages.");
+        // Fast fallback: return a minimal set of default packages to avoid UI timeouts
+        const fallbackPackages: any[] = [
+          {
+            _id: "fallback-basic",
+            name: "Basic Listing",
+            description: "Standard property listing with basic visibility",
+            price: 0,
+            duration: 30,
+            features: [
+              "30 days listing",
+              "Standard visibility",
+              "Basic property details",
+              "Contact information display",
+            ],
+            type: "basic",
+            category: "property",
+            location: "rohtak",
+            active: true,
+            placement: "footer",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            _id: "fallback-featured",
+            name: "Featured Listing",
+            description: "Enhanced visibility with featured badge",
+            price: 299,
+            duration: 30,
+            features: [
+              "Top of search results",
+              "Homepage visibility",
+              "Featured badge",
+              "Priority support",
+            ],
+            type: "featured",
+            category: "property",
+            location: "rohtak",
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            _id: "fallback-premium",
+            name: "Premium Listing",
+            description: "Maximum visibility with premium features",
+            price: 599,
+            duration: 60,
+            features: [
+              "Top priority everywhere",
+              "Homepage banner slot",
+              "Social media promotion",
+              "Dedicated support",
+            ],
+            type: "premium",
+            category: "property",
+            location: "rohtak",
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ];
+
+        const response: ApiResponse<any[]> = {
+          success: true,
+          data: fallbackPackages,
+          message: "Fallback packages (DB offline)",
+        };
+        res.set({ "X-DB-Status": "offline", "Cache-Control": "no-cache" });
+        return res.json(response);
+      }
+    }
     const { category, location, activeOnly = "false", isActive } = req.query;
 
     const filter: any = {};

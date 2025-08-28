@@ -77,9 +77,9 @@ const environment = detectEnvironment();
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
-  timeout: environment === "development" ? 8000 : 15000, // Reduced timeout for faster fallback
-  retryAttempts: 2, // Reduced retry attempts
-  retryDelay: 1000, // 1 second
+  timeout: environment === "development" ? 8000 : environment === "fly" ? 10000 : 15000,
+  retryAttempts: 2,
+  retryDelay: 1000,
   environment,
 };
 

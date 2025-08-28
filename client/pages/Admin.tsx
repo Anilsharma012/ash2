@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { createApiUrl } from "../lib/api";
+import { createApiUrl, adminApi } from "../lib/api";
 import AdminLayout from "../components/AdminLayout";
 import {
   BarChart3,
@@ -132,16 +132,20 @@ export default function Admin() {
 
       // Check if we can reach the base domain
       try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 5000);
         const healthCheck = await fetch(window.location.origin + "/api/ping", {
           method: "GET",
           cache: "no-cache",
-          timeout: 5000,
+          signal: controller.signal,
         });
+        clearTimeout(id);
         diagnostics.push(
           `Health check: ${healthCheck.status} ${healthCheck.statusText}`,
         );
-      } catch (healthError) {
-        diagnostics.push(`Health check failed: ${healthError.message}`);
+      } catch (healthError: any) {
+        const msg = healthError?.message || String(healthError);
+        diagnostics.push(`Health check failed: ${msg}`);
       }
 
       // Check browser capabilities
@@ -264,7 +268,7 @@ export default function Admin() {
         console.log("📍 Current environment:", window.location.href);
 
         // Log API configuration for debugging
-        const testUrl = createApiUrl("admin/stats");
+        const testUrl = createApiUrl("ping");
         console.log("🎯 Testing API endpoint:", testUrl);
 
         // Try a simple fetch with a reasonable timeout
@@ -276,7 +280,6 @@ export default function Admin() {
 
         const response = await fetch(testUrl, {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Cache-Control": "no-cache",
             Pragma: "no-cache",
           },
@@ -294,7 +297,19 @@ export default function Admin() {
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          let detail = "";
+          try {
+            const ct = response.headers.get("content-type") || "";
+            if (ct.includes("application/json")) {
+              const j = await response.json();
+              detail = j?.error || j?.message || JSON.stringify(j);
+            } else {
+              detail = await response.text();
+            }
+          } catch {}
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText || ""} ${detail}`.trim(),
+          );
         }
 
         // If we get here, connectivity is working
@@ -305,12 +320,14 @@ export default function Admin() {
           setLoading(false);
           setOfflineMode(true);
         }
-      } catch (error) {
-        console.error("⚠️ Connectivity test failed:", {
-          error: error.message || error,
-          name: error.name,
-          stack: error.stack,
-          cause: error.cause,
+      } catch (error: any) {
+        const errMsg =
+          error?.message ||
+          (typeof error === "string" ? error : JSON.stringify(error));
+        console.error("⚠️ Connectivity test failed:", errMsg, {
+          name: error?.name,
+          stack: error?.stack,
+          cause: error?.cause,
         });
 
         // Determine the type of error and respond accordingly
@@ -479,36 +496,53 @@ export default function Admin() {
       errors.push("Users API unreachable");
     }
 
-    // Fetch properties with individual error handling
+    // Fetch properties with centralized client and fallback retry
     try {
       console.log("Fetching admin properties...");
-      const propertiesResponse = await fetch(
-        createApiUrl("admin/properties?limit=10"),
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      if (propertiesResponse.ok) {
-        const propertiesData = await propertiesResponse.json();
-        console.log("Properties data received:", propertiesData);
-        if (propertiesData.success) {
-          setProperties(propertiesData.data.properties);
-        } else {
-          console.error("Properties fetch failed:", propertiesData.error);
-          errors.push("Properties API failed");
-        }
+      const propsData = await adminApi.getProperties(token, 10);
+      if (propsData.success) {
+        setProperties(propsData.data.properties || propsData.properties || []);
       } else {
-        console.error(
-          "Properties response not ok:",
-          propertiesResponse.status,
-          propertiesResponse.statusText,
-        );
-        errors.push(`Properties API error: ${propertiesResponse.status}`);
+        console.error("Properties fetch failed:", propsData.error);
+        errors.push("Properties API failed");
       }
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-      errors.push("Properties API unreachable");
+    } catch (error: any) {
+      console.error(
+        "Error fetching properties (primary):",
+        error?.message || error,
+      );
+      // Fallback: direct fetch with small limit and no-cache, retry once
+      try {
+        const url = createApiUrl("admin/properties?limit=5");
+        console.log("Retrying properties via:", url);
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 8000);
+        const resp = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+          },
+          cache: "no-cache",
+          signal: controller.signal,
+        });
+        clearTimeout(t);
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json?.success) {
+            setProperties(json.data?.properties || []);
+          } else {
+            errors.push("Properties API failed");
+          }
+        } else {
+          errors.push(`Properties API error: ${resp.status}`);
+        }
+      } catch (fallbackError: any) {
+        console.error(
+          "Error fetching properties (fallback):",
+          fallbackError?.message || fallbackError,
+        );
+        errors.push("Properties API unreachable");
+      }
     }
 
     setApiErrors(errors);
@@ -1068,6 +1102,8 @@ export default function Admin() {
           return <AdminBanners token={token} />;
         case "feature-section":
           return <PropertyManagement />;
+        case "home-categories":
+          return <CompleteCategoryManagement />;
         case "countries":
           return <CategoryManagement />;
         case "states":

@@ -113,7 +113,32 @@ export default function CompleteCategoryManagement() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setCategories(data.data.sort((a: Category, b: Category) => a.order - b.order));
+          const list = Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data.data?.categories)
+              ? data.data.categories
+              : [];
+
+          const normalized: Category[] = list.map((c: any) => ({
+            _id: c._id || c.id,
+            name: c.name,
+            slug: c.slug,
+            icon: c.iconUrl || c.icon || "",
+            description: c.description || "",
+            subcategories: (c.subcategories || []).map((s: any) => ({
+              id: s._id || s.id || Math.random().toString(36).slice(2),
+              name: s.name,
+              slug: s.slug,
+              description: s.description,
+              image: s.iconUrl || s.image,
+              count: s.count || 0,
+            })),
+            order: c.sortOrder ?? c.order ?? 999,
+            active: c.isActive ?? c.active ?? true,
+            count: c.subcategoryCount ?? c.count ?? 0,
+          }));
+
+          setCategories(normalized.sort((a, b) => (a.order || 0) - (b.order || 0)));
         } else {
           setError(data.error || "Failed to fetch categories");
         }
@@ -175,13 +200,13 @@ export default function CompleteCategoryManagement() {
         })
       );
 
-      const categoryData = {
-        ...newCategory,
-        icon: iconUrl,
-        subcategories: processedSubcategories,
+      // Map to backend schema
+      const payload = {
+        name: newCategory.name,
+        iconUrl: iconUrl,
+        sortOrder: newCategory.order ?? 999,
+        isActive: newCategory.active,
       };
-
-      delete (categoryData as any).iconFile;
 
       const response = await fetch("/api/admin/categories", {
         method: "POST",
@@ -189,7 +214,7 @@ export default function CompleteCategoryManagement() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(categoryData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -216,13 +241,19 @@ export default function CompleteCategoryManagement() {
     if (!token) return;
 
     try {
+      const mapped: any = {};
+      if (updates.name !== undefined) mapped.name = updates.name;
+      if ((updates as any).icon !== undefined) mapped.iconUrl = (updates as any).icon;
+      if ((updates as any).order !== undefined) mapped.sortOrder = (updates as any).order;
+      if (updates.active !== undefined) mapped.isActive = updates.active;
+
       const response = await fetch(`/api/admin/categories/${categoryId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(mapped),
       });
 
       if (response.ok) {

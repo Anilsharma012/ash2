@@ -245,6 +245,30 @@ export default function AdminTestingDashboard() {
             </Button>
 
             <Button
+              onClick={async () => {
+                try {
+                  const resp = await fetch("/api/admin/categories/sample-data", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  const data = await resp.json();
+                  if (data.success) {
+                    alert("Sample categories and subcategories added successfully.");
+                  } else {
+                    alert(data.error || "Failed to add sample data");
+                  }
+                } catch (e: any) {
+                  alert(e.message || "Error adding sample data");
+                }
+              }}
+              variant="outline"
+              className="flex items-center"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Seed Sample Categories
+            </Button>
+
+            <Button
               onClick={() => (window.location.href = "/admin")}
               variant="outline"
               className="flex items-center"

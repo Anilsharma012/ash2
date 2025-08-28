@@ -190,6 +190,7 @@ const menuItems: MenuItem[] = [
       { id: "slider", label: "Slider", icon: Sliders },
       { id: "banners", label: "Banners", icon: Megaphone },
       { id: "feature-section", label: "Feature Section", icon: Star },
+      { id: "home-categories", label: "Home Categories", icon: Layers },
     ],
   },
   {
