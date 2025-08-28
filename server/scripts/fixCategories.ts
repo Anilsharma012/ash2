@@ -135,7 +135,7 @@ export async function fixCategoryAndSubcategoryData() {
   };
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   fixCategoryAndSubcategoryData()
     .then((result) => {
       console.log("✅ Maintenance completed:", result);
