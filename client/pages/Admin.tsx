@@ -268,7 +268,7 @@ export default function Admin() {
         console.log("📍 Current environment:", window.location.href);
 
         // Log API configuration for debugging
-        const testUrl = createApiUrl("admin/stats");
+        const testUrl = createApiUrl("ping");
         console.log("🎯 Testing API endpoint:", testUrl);
 
         // Try a simple fetch with a reasonable timeout
@@ -280,7 +280,6 @@ export default function Admin() {
 
         const response = await fetch(testUrl, {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Cache-Control": "no-cache",
             Pragma: "no-cache",
           },
