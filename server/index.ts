@@ -50,6 +50,8 @@ import {
 
 // Category sample data seeding (admin)
 import { seedSampleCategories } from "./routes/admin-categories-sample";
+// Dev seeding route per spec
+import { devSeedCategories } from "./routes/dev-seed";
 
 // Service listings routes
 import {
