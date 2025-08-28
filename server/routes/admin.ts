@@ -206,33 +206,57 @@ export const getUserStats: RequestHandler = async (req, res) => {
     let db;
     try {
       db = getDatabase();
-      await db.admin().ping();
     } catch (e: any) {
       console.log("🔄 DB not ready in stats, attempting connect...", e?.message);
       const { connectToDatabase } = await import("../db/mongodb");
       const conn = await connectToDatabase();
       db = conn.db;
-      await db.admin().ping();
     }
-    console.log("✅ Database connection verified for admin stats");
 
-    const stats = await db
-      .collection("users")
-      .aggregate([
-        {
-          $group: {
-            _id: "$userType",
-            count: { $sum: 1 },
-          },
-        },
-      ])
-      .toArray();
+    let usersByType: any[] = [];
+    let totalUsers = 0;
+    let totalProperties = 0;
+    let activeProperties = 0;
+    let degraded = false;
 
-    const totalUsers = await db.collection("users").countDocuments();
-    const totalProperties = await db.collection("properties").countDocuments();
-    const activeProperties = await db
-      .collection("properties")
-      .countDocuments({ status: "active" });
+    try {
+      usersByType = await db
+        .collection("users")
+        .aggregate([
+          { $group: { _id: "$userType", count: { $sum: 1 } } },
+        ])
+        .toArray();
+    } catch (e) {
+      console.warn("⚠️ usersByType aggregation failed:", (e as any)?.message || e);
+      degraded = true;
+      usersByType = [];
+    }
+
+    try {
+      totalUsers = await db.collection("users").countDocuments();
+    } catch (e) {
+      console.warn("⚠️ totalUsers count failed:", (e as any)?.message || e);
+      degraded = true;
+      totalUsers = 0;
+    }
+
+    try {
+      totalProperties = await db.collection("properties").countDocuments();
+    } catch (e) {
+      console.warn("⚠️ totalProperties count failed:", (e as any)?.message || e);
+      degraded = true;
+      totalProperties = 0;
+    }
+
+    try {
+      activeProperties = await db
+        .collection("properties")
+        .countDocuments({ status: "active" });
+    } catch (e) {
+      console.warn("⚠️ activeProperties count failed:", (e as any)?.message || e);
+      degraded = true;
+      activeProperties = 0;
+    }
 
     const response: ApiResponse<{
       totalUsers: number;
@@ -245,16 +269,24 @@ export const getUserStats: RequestHandler = async (req, res) => {
         totalUsers,
         totalProperties,
         activeProperties,
-        usersByType: stats,
+        usersByType,
       },
-    };
+      meta: degraded ? { degraded: true } : undefined,
+    } as any;
 
     res.json(response);
-  } catch (error) {
-    console.error("Error fetching stats:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch statistics",
+  } catch (error: any) {
+    console.error("Error fetching stats:", error?.message || error);
+    // As a last resort, return degraded empty stats instead of 500 to avoid breaking admin
+    res.json({
+      success: true,
+      data: {
+        totalUsers: 0,
+        totalProperties: 0,
+        activeProperties: 0,
+        usersByType: [],
+      },
+      meta: { degraded: true, error: error?.message || String(error) },
     });
   }
 };
@@ -1271,7 +1303,7 @@ export const createTestProperty: RequestHandler = async (req, res) => {
     };
 
     const result = await db.collection("properties").insertOne(testProperty);
-    console.log("✅ Test property created with ID:", result.insertedId);
+    console.log("��� Test property created with ID:", result.insertedId);
 
     // Also create a few more test properties for testing
     const moreTestProperties = [
