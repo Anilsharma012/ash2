@@ -353,7 +353,13 @@ export const loginUser: RequestHandler = async (req, res) => {
 
     // Development fallback: allow demo admin login when DB is unavailable
     const isDbInitError =
-      error && typeof error.message === "string" && error.message.includes("Database not initialized");
+      error && typeof error.message === "string" && (
+        error.message.includes("Database not initialized") ||
+        error.message.includes("Failed to connect to MongoDB") ||
+        error.message.includes("ECONNREFUSED") ||
+        error.message.includes("timeout") ||
+        error.message.includes("ENOTFOUND")
+      );
     const isDev = process.env.NODE_ENV !== "production";
 
     const { email, username, password, userType } = (req as any).body || {};
