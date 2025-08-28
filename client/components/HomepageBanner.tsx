@@ -39,7 +39,7 @@ export default function HomepageBanner({
         controller.abort();
       }, 8000);
 
-      const response = await fetch(`/api/banners/${position}`, {
+      const response = await fetch(`/api/banners?active=true`, {
         signal: controller.signal,
         cache: "no-cache",
       });
@@ -60,6 +60,7 @@ export default function HomepageBanner({
           setBanners(data.data);
         } else {
           console.log("⚠️ No banner data or invalid format");
+          setBanners([]);
         }
       } else {
         console.log(`⚠️ Banners request failed: ${response.status}`);
@@ -116,11 +117,10 @@ export default function HomepageBanner({
           {/* Banner Image */}
           <div className="relative">
             <img
-              src={currentBanner.image}
+              src={(currentBanner as any).imageUrl || (currentBanner as any).image}
               alt={currentBanner.title}
               className="w-full h-24 md:h-32 object-cover rounded-lg"
               onError={(e) => {
-                // Fallback to placeholder if image fails to load
                 const target = e.target as HTMLImageElement;
                 target.src = `https://via.placeholder.com/800x200/f97316/ffffff?text=${encodeURIComponent(currentBanner.title)}`;
               }}
@@ -136,9 +136,9 @@ export default function HomepageBanner({
               <h3 className="text-sm md:text-lg font-bold leading-tight">
                 {currentBanner.title}
               </h3>
-              <p className="text-xs md:text-sm opacity-90 mt-1 line-clamp-2">
-                {currentBanner.description}
-              </p>
+              {false && (
+                <p className="text-xs md:text-sm opacity-90 mt-1 line-clamp-2"></p>
+              )}
             </div>
 
             {/* Call-to-action arrow */}
