@@ -1,7 +1,12 @@
 import { defineConfig, Plugin } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { fileURLToPath } from "url";
 import { createServer, initializeSocket } from "./server";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname_local = path.dirname(__filename);
 
 // ✅ Final working config
 export default defineConfig(({ command }) => {
