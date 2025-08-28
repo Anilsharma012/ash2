@@ -533,7 +533,30 @@ export default function AdminCategoriesNew({ token }: AdminCategoriesProps) {
         <h1 className="text-2xl font-bold text-gray-900">
           Category Management
         </h1>
-        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const resp = await fetch("/api/admin/dev/seed", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await resp.json();
+                if (data.success) {
+                  toast({ title: "Seeded", description: "Categories and subcategories created" });
+                  fetchCategories();
+                } else {
+                  toast({ title: "Error", description: data.error || "Seeding failed", variant: "destructive" });
+                }
+              } catch (e: any) {
+                toast({ title: "Error", description: e.message || "Seeding failed", variant: "destructive" });
+              }
+            }}
+          >
+            Seed Data
+          </Button>
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
             <Button
               onClick={resetForm}
@@ -663,6 +686,7 @@ export default function AdminCategoriesNew({ token }: AdminCategoriesProps) {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Search */}
