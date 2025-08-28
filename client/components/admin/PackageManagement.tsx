@@ -91,8 +91,8 @@ export default function PackageManagement() {
       } else {
         setError("Failed to fetch packages");
       }
-    } catch (error) {
-      console.error("Error fetching packages:", error);
+    } catch (error: any) {
+      console.error("Error fetching packages:", error?.message || error);
       setError("Failed to fetch packages");
     } finally {
       setLoading(false);
