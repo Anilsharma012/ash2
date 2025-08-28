@@ -14,41 +14,27 @@ export async function connectToDatabase() {
   }
 
   try {
-    console.log("🔄 Connecting to MongoDB Atlas...");
-    console.log("🔗 Connection string:", MONGODB_URI.replace(password, "***"));
-    console.log("👤 Username:", username);
-    console.log("🌐 Cluster:", cluster);
+    console.log("🔄 Connecting to MongoDB...");
     console.log("📊 Target Database:", DB_NAME);
 
     client = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 15000, // 15 seconds
-      connectTimeoutMS: 20000, // 20 seconds
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 20000,
       maxPoolSize: 10,
       retryWrites: true,
       retryReads: true,
       maxIdleTimeMS: 30000,
       heartbeatFrequencyMS: 10000,
-      // Add auth source
-      authSource: "admin",
-      // SSL/TLS options
-      tls: true,
-      tlsAllowInvalidCertificates: false,
-      tlsAllowInvalidHostnames: false,
     });
 
-    console.log("🤝 Attempting to connect...");
     await client.connect();
-    console.log("✅ Client connected to MongoDB Atlas");
 
-    // Test the connection with admin command
-    console.log("🏓 Testing connection with ping...");
-    const pingResult = await client.db("admin").command({ ping: 1 });
-    console.log("🏓 Ping result:", pingResult);
+    // Test the connection with ping
+    await client.db(DB_NAME).command({ ping: 1 });
 
     // Get the database
     db = client.db(DB_NAME);
-    console.log("✅ Connected to MongoDB Atlas successfully!");
-    console.log("📊 Database:", DB_NAME);
+    console.log("✅ MongoDB connected");
 
     // Test database access
     const stats = await db.stats();
