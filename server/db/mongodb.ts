@@ -1,3 +1,5 @@
+
+
 import { MongoClient, Db } from "mongodb";
 
 const DEFAULT_LOCAL_URI = "mongodb://127.0.0.1:27017/aashish_property";
