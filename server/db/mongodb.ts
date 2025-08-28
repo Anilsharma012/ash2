@@ -27,19 +27,13 @@ export async function connectToDatabase() {
     console.log("📊 Target Database:", DB_NAME);
 
     client = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 15000, // 15 seconds
-      connectTimeoutMS: 20000, // 20 seconds
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 20000,
       maxPoolSize: 10,
       retryWrites: true,
       retryReads: true,
       maxIdleTimeMS: 30000,
       heartbeatFrequencyMS: 10000,
-      // Add auth source
-      authSource: "admin",
-      // SSL/TLS options
-      tls: true,
-      tlsAllowInvalidCertificates: false,
-      tlsAllowInvalidHostnames: false,
     });
 
     console.log("🤝 Attempting to connect...");
