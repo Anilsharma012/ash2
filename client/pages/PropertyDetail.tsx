@@ -521,6 +521,16 @@ export default function PropertyDetail() {
                     </span>
                   </div>
                 </div>
+
+                {/* Reviews */}
+                <div className="mt-6">
+                  {/* @ts-expect-error: component import below */}
+                  {/* eslint-disable-next-line */}
+                  {(function(){
+                    const Comp = require("../components/PropertyReviews").default;
+                    return <Comp propertyId={property._id} />;
+                  })()}
+                </div>
               </CardContent>
             </Card>
           </div>
