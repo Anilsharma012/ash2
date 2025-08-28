@@ -1,14 +1,8 @@
 import { MongoClient, Db } from "mongodb";
 
-// URL encode the password to handle special characters
-const username = "Aashishpropeorty";
-const password = "SATYAKA123"; // Using the exact password provided
-const cluster = "property.zn2cowc.mongodb.net";
-
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  `mongodb+srv://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${cluster}/Use?retryWrites=true&w=majority&appName=Property`;
-const DB_NAME = process.env.DB_NAME || "aashish_property";
+const DEFAULT_LOCAL_URI = "mongodb://127.0.0.1:27017/aashish_property";
+const MONGODB_URI = process.env.MONGODB_URI || DEFAULT_LOCAL_URI;
+const DB_NAME = process.env.DB_NAME || (process.env.MONGODB_DB || "aashish_property");
 
 let client: MongoClient;
 let db: Db;
