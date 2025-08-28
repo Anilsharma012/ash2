@@ -710,6 +710,8 @@ export function createServer() {
     "/api/categories/:categorySlug/subcategories",
     getSubcategoriesByCategory,
   );
+  // New public single response for frontend
+  app.get("/api/public/categories", getPublicCategories);
 
   // ADMIN Category routes
   app.get(
