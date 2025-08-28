@@ -297,6 +297,10 @@ export default function ChatBot({
     scrollToBottom();
   };
 
+  const updateMessageStatus = (id: string, status: 'sending' | 'sent' | 'read') => {
+    setMessages(prev => prev.map(m => (m.id === id ? { ...m, status } : m)));
+  };
+
   const scrollToBottom = () => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
