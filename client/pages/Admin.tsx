@@ -132,16 +132,20 @@ export default function Admin() {
 
       // Check if we can reach the base domain
       try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 5000);
         const healthCheck = await fetch(window.location.origin + "/api/ping", {
           method: "GET",
           cache: "no-cache",
-          timeout: 5000,
+          signal: controller.signal,
         });
+        clearTimeout(id);
         diagnostics.push(
           `Health check: ${healthCheck.status} ${healthCheck.statusText}`,
         );
-      } catch (healthError) {
-        diagnostics.push(`Health check failed: ${healthError.message}`);
+      } catch (healthError: any) {
+        const msg = healthError?.message || String(healthError);
+        diagnostics.push(`Health check failed: ${msg}`);
       }
 
       // Check browser capabilities
