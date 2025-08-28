@@ -200,7 +200,7 @@ export default function DatabaseStatus({ token }: DatabaseStatusProps) {
       // 7. Check Banners
       try {
         console.log("🔍 Testing banners endpoint...");
-        const bannersResponse = await safeFetch("/api/banners/homepage_top");
+        const bannersResponse = await safeFetch("/api/banners?active=true");
         const bannersData = await bannersResponse.json();
         newStatus.banners = bannersResponse.ok && bannersData.success;
         console.log(
