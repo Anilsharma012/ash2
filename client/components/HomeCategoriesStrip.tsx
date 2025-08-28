@@ -21,14 +21,6 @@ interface CategoryDoc {
   subcategories?: SubcategoryDoc[];
 }
 
-const ORDER = [
-  "buy-property",
-  "for-sale",
-  "rent-property",
-  "lease-property",
-  "pg-and-hostels",
-  "other-services",
-];
 
 function slugify(name: string) {
   return name
@@ -44,26 +36,21 @@ export default function HomeCategoriesStrip() {
   const { data, isLoading } = useQuery({
     queryKey: ["home-categories-strip"],
     queryFn: async () => {
-      const res = await fetch("/api/categories?active=true&withSub=true", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/public/categories", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load categories");
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Failed to load");
-      return (json.data as CategoryDoc[]) || [];
+      return (json as any[]) || [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 
   const categories = React.useMemo(() => {
-    const list = (data || []).map((c) => ({
+    return (data || []).map((c: any) => ({
       ...c,
       slug: c.slug || slugify(c.name),
-      subcategories: (c.subcategories || []).slice().sort((a, b) => a.sortOrder - b.sortOrder),
+      subcategories: (c.subcategories || []).slice(),
     }));
-    // Sort into the exact order required
-    const bySlug = new Map(list.map((c) => [c.slug, c]));
-    return ORDER.map((slug) => bySlug.get(slug)).filter(Boolean) as CategoryDoc[];
   }, [data]);
 
   if (isLoading) {
