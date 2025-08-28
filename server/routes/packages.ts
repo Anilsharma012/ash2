@@ -81,12 +81,12 @@ async function initializePackagesInternal(db: Db) {
 export const getAdPackages: RequestHandler = async (req, res) => {
   try {
     const db = getDatabase();
-    const { category, location, activeOnly = "false", isActive } = req.query;
+    const { category, location, activeOnly = "false", isActive } = req.query as any;
 
     const filter: any = {};
 
     // Support both activeOnly and isActive parameters for backward compatibility
-    if (activeOnly === "true" || isActive === "1") {
+    if (activeOnly === "true" || isActive === "1" || isActive === "true") {
       filter.active = true;
     }
 

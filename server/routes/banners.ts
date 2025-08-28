@@ -38,7 +38,7 @@ export const getActiveBanners: RequestHandler = async (req, res) => {
 
     // Build filter
     const filter: any = {};
-    if (active === "true") {
+    if (active === "true" || active === "1") {
       filter.isActive = true;
     }
 
