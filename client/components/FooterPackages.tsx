@@ -16,20 +16,30 @@ export default function FooterPackages() {
       setLoading(true);
 
       // Get packages with placement='footer'
-      const response = await (window as any).api("/plans?isActive=true");
-      const data = response.ok
-        ? response.json
-        : { success: false, error: "Failed to fetch plans" };
+      let data: any;
+      try {
+        const response = await (window as any).api("/plans?isActive=true");
+        data = response.ok ? response.json : response.data;
+      } catch (apiError: any) {
+        console.warn("⚠️ Global API failed for footer packages, trying direct fetch:", apiError?.message || apiError);
+        const direct = await fetch("/api/plans?isActive=true", {
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!direct.ok) throw new Error(`HTTP ${direct.status}: ${direct.statusText}`);
+        data = await direct.json();
+      }
 
-      if (data.success && Array.isArray(data.data)) {
+      if (data?.success && Array.isArray(data.data)) {
         // Filter for footer placement packages
         const footerPackages = data.data.filter(
-          (pkg: AdPackage) => pkg.placement === "footer",
+          (pkg: AdPackage) => (pkg as any).placement === "footer",
         );
         setPackages(footerPackages);
+      } else {
+        setPackages([]);
       }
-    } catch (error) {
-      console.error("Error fetching footer packages:", error);
+    } catch (error: any) {
+      console.error("Error fetching footer packages:", error?.message || error);
       setPackages([]);
     } finally {
       setLoading(false);
