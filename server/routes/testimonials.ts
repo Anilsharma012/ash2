@@ -219,3 +219,43 @@ export const deleteTestimonial: RequestHandler = async (req, res) => {
     });
   }
 };
+
+// Admin: initialize dummy testimonials for testing
+export const initializeTestimonials: RequestHandler = async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { propertyId } = req.body || {};
+
+    const samples = [
+      {
+        name: "Ravi Kumar",
+        email: "ravi@example.com",
+        rating: 5,
+        comment: "Excellent property, smooth experience!",
+        propertyId,
+        status: "approved",
+        featured: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        name: "Pooja Sharma",
+        email: "pooja@example.com",
+        rating: 4,
+        comment: "Good location and owner was helpful.",
+        propertyId,
+        status: "approved",
+        featured: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    await db.collection("testimonials").insertMany(samples as any[]);
+
+    res.json({ success: true, data: { inserted: samples.length } });
+  } catch (error) {
+    console.error("Error initializing testimonials:", error);
+    res.status(500).json({ success: false, error: "Failed to initialize testimonials" });
+  }
+};
