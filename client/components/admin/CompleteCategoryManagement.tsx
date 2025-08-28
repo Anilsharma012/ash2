@@ -200,13 +200,13 @@ export default function CompleteCategoryManagement() {
         })
       );
 
-      const categoryData = {
-        ...newCategory,
-        icon: iconUrl,
-        subcategories: processedSubcategories,
+      // Map to backend schema
+      const payload = {
+        name: newCategory.name,
+        iconUrl: iconUrl,
+        sortOrder: newCategory.order ?? 999,
+        isActive: newCategory.active,
       };
-
-      delete (categoryData as any).iconFile;
 
       const response = await fetch("/api/admin/categories", {
         method: "POST",
@@ -214,7 +214,7 @@ export default function CompleteCategoryManagement() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(categoryData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -241,13 +241,19 @@ export default function CompleteCategoryManagement() {
     if (!token) return;
 
     try {
+      const mapped: any = {};
+      if (updates.name !== undefined) mapped.name = updates.name;
+      if ((updates as any).icon !== undefined) mapped.iconUrl = (updates as any).icon;
+      if ((updates as any).order !== undefined) mapped.sortOrder = (updates as any).order;
+      if (updates.active !== undefined) mapped.isActive = updates.active;
+
       const response = await fetch(`/api/admin/categories/${categoryId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(mapped),
       });
 
       if (response.ok) {
