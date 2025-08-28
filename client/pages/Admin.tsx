@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { createApiUrl } from "../lib/api";
+import { createApiUrl, adminApi } from "../lib/api";
 import AdminLayout from "../components/AdminLayout";
 import {
   BarChart3,
