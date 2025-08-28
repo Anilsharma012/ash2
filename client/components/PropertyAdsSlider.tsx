@@ -78,7 +78,7 @@ const PropertyAdsSlider: React.FC = () => {
           const timeoutId = setTimeout(() => controller.abort(), 5000);
 
           const adsResponse = await fetch(
-            "/api/banners?position=homepage_middle",
+            "/api/banners?active=true",
             {
               signal: controller.signal,
               headers: {
@@ -96,12 +96,17 @@ const PropertyAdsSlider: React.FC = () => {
               adsData.data &&
               Array.isArray(adsData.data)
             ) {
-              const homeAds = adsData.data.filter(
-                (ad: Advertisement) =>
-                  ad.active && ad.position === "homepage_middle",
-              );
-              setAds(homeAds);
-              console.log("✅ Loaded", homeAds.length, "home advertisements");
+              const mappedAds: Advertisement[] = adsData.data.map((b: any) => ({
+                _id: b._id || Math.random().toString(36).slice(2),
+                title: b.title,
+                description: "",
+                image: b.imageUrl,
+                link: b.link,
+                position: "homepage_middle",
+                active: b.isActive !== false,
+              }));
+              setAds(mappedAds);
+              console.log("✅ Loaded", mappedAds.length, "home advertisements");
             }
           }
         } catch (error: any) {
