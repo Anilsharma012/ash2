@@ -238,6 +238,7 @@ import {
   createTestimonial,
   updateTestimonialStatus,
   deleteTestimonial,
+  initializeTestimonials,
 } from "./routes/testimonials";
 
 // FAQ routes
@@ -1338,6 +1339,12 @@ export function createServer() {
     authenticateToken,
     requireAdmin,
     deleteTestimonial,
+  );
+  app.post(
+    "/api/admin/testimonials/initialize",
+    authenticateToken,
+    requireAdmin,
+    initializeTestimonials,
   );
 
   // FAQ routes
