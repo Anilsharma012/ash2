@@ -52,6 +52,10 @@ import {
 import { seedSampleCategories } from "./routes/admin-categories-sample";
 // Dev seeding route per spec
 import { devSeedCategories } from "./routes/dev-seed";
+// Public categories single response
+import { getPublicCategories } from "./routes/public-categories";
+// Maintenance route
+import { runCategoryMaintenance } from "./routes/fix-categories";
 
 // Service listings routes
 import {
