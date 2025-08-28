@@ -203,10 +203,17 @@ export const exportUsers: RequestHandler = async (req, res) => {
 // Get user statistics
 export const getUserStats: RequestHandler = async (req, res) => {
   try {
-    const db = getDatabase();
-
-    // Test database connection
-    await db.admin().ping();
+    let db;
+    try {
+      db = getDatabase();
+      await db.admin().ping();
+    } catch (e: any) {
+      console.log("🔄 DB not ready in stats, attempting connect...", e?.message);
+      const { connectToDatabase } = await import("../db/mongodb");
+      const conn = await connectToDatabase();
+      db = conn.db;
+      await db.admin().ping();
+    }
     console.log("✅ Database connection verified for admin stats");
 
     const stats = await db
