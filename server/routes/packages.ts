@@ -80,7 +80,14 @@ async function initializePackagesInternal(db: Db) {
 // Get all advertisement packages
 export const getAdPackages: RequestHandler = async (req, res) => {
   try {
-    const db = getDatabase();
+    let db;
+    try {
+      db = getDatabase();
+    } catch (e) {
+      console.warn("⚠️ Database not initialized for packages. Attempting to connect...");
+      const connection = await connectToDatabase();
+      db = connection.db;
+    }
     const { category, location, activeOnly = "false", isActive } = req.query;
 
     const filter: any = {};
