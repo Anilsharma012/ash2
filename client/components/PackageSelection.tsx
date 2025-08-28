@@ -51,8 +51,8 @@ export default function PackageSelection({
       } else {
         console.error("Failed to fetch packages:", data.error);
       }
-    } catch (error) {
-      console.error("Error fetching packages:", error);
+    } catch (error: any) {
+      console.error("Error fetching packages:", error?.message || error);
     } finally {
       setLoading(false);
     }
