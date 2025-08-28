@@ -48,6 +48,9 @@ import {
   getSubcategoriesByCategory as getSubcategoriesByCategoryAdmin,
 } from "./routes/subcategories-new";
 
+// Category sample data seeding (admin)
+import { seedSampleCategories } from "./routes/admin-categories-sample";
+
 // Service listings routes
 import {
   getServiceListings,
