@@ -538,12 +538,14 @@ export default function AdminCategoriesNew({ token }: AdminCategoriesProps) {
             variant="outline"
             onClick={async () => {
               try {
-                const resp = await fetch("/api/admin/dev/seed", {
+                const resp = await fetch("/api/admin/dev/seed-categories", {
                   method: "POST",
                   headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await resp.json();
                 if (data.success) {
+                  // Warm public cache and refresh admin list
+                  await fetch("/api/public/categories", { headers: { "cache-control": "no-store" } });
                   toast({ title: "Seeded", description: "Categories and subcategories created" });
                   fetchCategories();
                 } else {
