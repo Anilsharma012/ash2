@@ -773,6 +773,20 @@ export function createServer() {
     requireAdmin,
     devSeedCategories,
   );
+  // Alias per spec: /api/admin/dev/seed-categories
+  app.post(
+    "/api/admin/dev/seed-categories",
+    authenticateToken,
+    requireAdmin,
+    devSeedCategories,
+  );
+  // Maintenance endpoint to fix slugs + active flags
+  app.post(
+    "/api/admin/dev/fix-categories",
+    authenticateToken,
+    requireAdmin,
+    runCategoryMaintenance,
+  );
 
   // ADMIN Subcategory routes
   app.get(
