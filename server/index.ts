@@ -750,6 +750,14 @@ export function createServer() {
     handleIconUpload,
   );
 
+  // Seed sample categories and subcategories for testing
+  app.post(
+    "/api/admin/categories/sample-data",
+    authenticateToken,
+    requireAdmin,
+    seedSampleCategories,
+  );
+
   // ADMIN Subcategory routes
   app.get(
     "/api/admin/subcategories",
