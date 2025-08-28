@@ -307,7 +307,9 @@ export default function Admin() {
               detail = await response.text();
             }
           } catch {}
-          throw new Error(`HTTP ${response.status}: ${response.statusText || ""} ${detail}`.trim());
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText || ""} ${detail}`.trim(),
+          );
         }
 
         // If we get here, connectivity is working
@@ -320,7 +322,8 @@ export default function Admin() {
         }
       } catch (error: any) {
         const errMsg =
-          error?.message || (typeof error === "string" ? error : JSON.stringify(error));
+          error?.message ||
+          (typeof error === "string" ? error : JSON.stringify(error));
         console.error("⚠️ Connectivity test failed:", errMsg, {
           name: error?.name,
           stack: error?.stack,
@@ -504,7 +507,10 @@ export default function Admin() {
         errors.push("Properties API failed");
       }
     } catch (error: any) {
-      console.error("Error fetching properties (primary):", error?.message || error);
+      console.error(
+        "Error fetching properties (primary):",
+        error?.message || error,
+      );
       // Fallback: direct fetch with small limit and no-cache, retry once
       try {
         const url = createApiUrl("admin/properties?limit=5");
@@ -512,7 +518,10 @@ export default function Admin() {
         const controller = new AbortController();
         const t = setTimeout(() => controller.abort(), 8000);
         const resp = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+          },
           cache: "no-cache",
           signal: controller.signal,
         });
@@ -528,7 +537,10 @@ export default function Admin() {
           errors.push(`Properties API error: ${resp.status}`);
         }
       } catch (fallbackError: any) {
-        console.error("Error fetching properties (fallback):", fallbackError?.message || fallbackError);
+        console.error(
+          "Error fetching properties (fallback):",
+          fallbackError?.message || fallbackError,
+        );
         errors.push("Properties API unreachable");
       }
     }

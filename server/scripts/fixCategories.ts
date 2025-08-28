@@ -11,7 +11,11 @@ function slugify(name: string): string {
     .trim();
 }
 
-async function ensureUniqueCategorySlug(db: any, base: string, excludeId?: string) {
+async function ensureUniqueCategorySlug(
+  db: any,
+  base: string,
+  excludeId?: string,
+) {
   let baseSlug = slugify(base);
   let slug = baseSlug || "category";
   let counter = 2;
@@ -26,7 +30,12 @@ async function ensureUniqueCategorySlug(db: any, base: string, excludeId?: strin
   }
 }
 
-async function ensureUniqueSubSlug(db: any, categoryId: string, base: string, excludeId?: string) {
+async function ensureUniqueSubSlug(
+  db: any,
+  categoryId: string,
+  base: string,
+  excludeId?: string,
+) {
   let baseSlug = slugify(base);
   let slug = baseSlug || "subcategory";
   let counter = 2;
@@ -44,10 +53,28 @@ export async function fixCategoryAndSubcategoryData() {
   const db = getDatabase();
 
   // Create required indexes (idempotent)
-  await db.collection("categories").createIndex({ slug: 1 } as IndexSpecification, { unique: true, name: "uniq_category_slug" });
-  await db.collection("categories").createIndex({ sortOrder: 1 } as IndexSpecification, { name: "idx_category_sort" });
-  await db.collection("subcategories").createIndex({ categoryId: 1, slug: 1 } as IndexSpecification, { unique: true, name: "uniq_sub_slug_per_cat" });
-  await db.collection("subcategories").createIndex({ sortOrder: 1 } as IndexSpecification, { name: "idx_sub_sort" });
+  await db
+    .collection("categories")
+    .createIndex({ slug: 1 } as IndexSpecification, {
+      unique: true,
+      name: "uniq_category_slug",
+    });
+  await db
+    .collection("categories")
+    .createIndex({ sortOrder: 1 } as IndexSpecification, {
+      name: "idx_category_sort",
+    });
+  await db
+    .collection("subcategories")
+    .createIndex({ categoryId: 1, slug: 1 } as IndexSpecification, {
+      unique: true,
+      name: "uniq_sub_slug_per_cat",
+    });
+  await db
+    .collection("subcategories")
+    .createIndex({ sortOrder: 1 } as IndexSpecification, {
+      name: "idx_sub_sort",
+    });
 
   const now = new Date();
 
@@ -60,7 +87,12 @@ export async function fixCategoryAndSubcategoryData() {
     const update: any = { updatedAt: now };
 
     // Normalize active flags
-    const currentActive = typeof cat.isActive === "boolean" ? cat.isActive : typeof cat.active === "boolean" ? cat.active : true;
+    const currentActive =
+      typeof cat.isActive === "boolean"
+        ? cat.isActive
+        : typeof cat.active === "boolean"
+          ? cat.active
+          : true;
     if (cat.isActive !== currentActive) {
       update.isActive = currentActive;
       needsUpdate = true;
@@ -72,19 +104,31 @@ export async function fixCategoryAndSubcategoryData() {
 
     // Ensure slug
     if (!cat.slug || typeof cat.slug !== "string" || !cat.slug.trim()) {
-      update.slug = await ensureUniqueCategorySlug(db, cat.name || "category", cat._id?.toString());
+      update.slug = await ensureUniqueCategorySlug(
+        db,
+        cat.name || "category",
+        cat._id?.toString(),
+      );
       needsUpdate = true;
     } else {
       // Also handle duplicates by ensuring uniqueness when duplicates exist
-      const duplicate = await db.collection("categories").findOne({ slug: cat.slug, _id: { $ne: new ObjectId(cat._id) } });
+      const duplicate = await db
+        .collection("categories")
+        .findOne({ slug: cat.slug, _id: { $ne: new ObjectId(cat._id) } });
       if (duplicate) {
-        update.slug = await ensureUniqueCategorySlug(db, cat.name || cat.slug, cat._id?.toString());
+        update.slug = await ensureUniqueCategorySlug(
+          db,
+          cat.name || cat.slug,
+          cat._id?.toString(),
+        );
         needsUpdate = true;
       }
     }
 
     if (needsUpdate) {
-      await db.collection("categories").updateOne({ _id: new ObjectId(cat._id) }, { $set: update });
+      await db
+        .collection("categories")
+        .updateOne({ _id: new ObjectId(cat._id) }, { $set: update });
       categoriesUpdated++;
     }
   }
@@ -97,7 +141,12 @@ export async function fixCategoryAndSubcategoryData() {
     let needsUpdate = false;
     const update: any = { updatedAt: now };
 
-    const currentActive = typeof sub.isActive === "boolean" ? sub.isActive : typeof sub.active === "boolean" ? sub.active : true;
+    const currentActive =
+      typeof sub.isActive === "boolean"
+        ? sub.isActive
+        : typeof sub.active === "boolean"
+          ? sub.active
+          : true;
     if (sub.isActive !== currentActive) {
       update.isActive = currentActive;
       needsUpdate = true;
@@ -110,18 +159,36 @@ export async function fixCategoryAndSubcategoryData() {
     const catId = (sub.categoryId || "").toString();
 
     if (!sub.slug || typeof sub.slug !== "string" || !sub.slug.trim()) {
-      update.slug = await ensureUniqueSubSlug(db, catId, sub.name || "subcategory", sub._id?.toString());
+      update.slug = await ensureUniqueSubSlug(
+        db,
+        catId,
+        sub.name || "subcategory",
+        sub._id?.toString(),
+      );
       needsUpdate = true;
     } else {
-      const duplicate = await db.collection("subcategories").findOne({ categoryId: catId, slug: sub.slug, _id: { $ne: new ObjectId(sub._id) } });
+      const duplicate = await db
+        .collection("subcategories")
+        .findOne({
+          categoryId: catId,
+          slug: sub.slug,
+          _id: { $ne: new ObjectId(sub._id) },
+        });
       if (duplicate) {
-        update.slug = await ensureUniqueSubSlug(db, catId, sub.name || sub.slug, sub._id?.toString());
+        update.slug = await ensureUniqueSubSlug(
+          db,
+          catId,
+          sub.name || sub.slug,
+          sub._id?.toString(),
+        );
         needsUpdate = true;
       }
     }
 
     if (needsUpdate) {
-      await db.collection("subcategories").updateOne({ _id: new ObjectId(sub._id) }, { $set: update });
+      await db
+        .collection("subcategories")
+        .updateOne({ _id: new ObjectId(sub._id) }, { $set: update });
       subcategoriesUpdated++;
     }
   }

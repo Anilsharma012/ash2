@@ -207,7 +207,10 @@ export const getUserStats: RequestHandler = async (req, res) => {
     try {
       db = getDatabase();
     } catch (e: any) {
-      console.log("🔄 DB not ready in stats, attempting connect...", e?.message);
+      console.log(
+        "🔄 DB not ready in stats, attempting connect...",
+        e?.message,
+      );
       const { connectToDatabase } = await import("../db/mongodb");
       const conn = await connectToDatabase();
       db = conn.db;
@@ -222,12 +225,13 @@ export const getUserStats: RequestHandler = async (req, res) => {
     try {
       usersByType = await db
         .collection("users")
-        .aggregate([
-          { $group: { _id: "$userType", count: { $sum: 1 } } },
-        ])
+        .aggregate([{ $group: { _id: "$userType", count: { $sum: 1 } } }])
         .toArray();
     } catch (e) {
-      console.warn("⚠️ usersByType aggregation failed:", (e as any)?.message || e);
+      console.warn(
+        "⚠️ usersByType aggregation failed:",
+        (e as any)?.message || e,
+      );
       degraded = true;
       usersByType = [];
     }
@@ -243,7 +247,10 @@ export const getUserStats: RequestHandler = async (req, res) => {
     try {
       totalProperties = await db.collection("properties").countDocuments();
     } catch (e) {
-      console.warn("⚠️ totalProperties count failed:", (e as any)?.message || e);
+      console.warn(
+        "⚠️ totalProperties count failed:",
+        (e as any)?.message || e,
+      );
       degraded = true;
       totalProperties = 0;
     }
@@ -253,7 +260,10 @@ export const getUserStats: RequestHandler = async (req, res) => {
         .collection("properties")
         .countDocuments({ status: "active" });
     } catch (e) {
-      console.warn("⚠️ activeProperties count failed:", (e as any)?.message || e);
+      console.warn(
+        "⚠️ activeProperties count failed:",
+        (e as any)?.message || e,
+      );
       degraded = true;
       activeProperties = 0;
     }
@@ -655,7 +665,10 @@ function slugifyCategoryName(name: string): string {
     .trim();
 }
 
-async function ensureUniqueCategorySlug(db: any, base: string): Promise<string> {
+async function ensureUniqueCategorySlug(
+  db: any,
+  base: string,
+): Promise<string> {
   let baseSlug = slugifyCategoryName(base);
   if (!baseSlug) baseSlug = "category";
   let slug = baseSlug;
@@ -670,15 +683,25 @@ async function ensureUniqueCategorySlug(db: any, base: string): Promise<string> 
 export const createCategory: RequestHandler = async (req, res) => {
   try {
     const db = getDatabase();
-    const { name, slug, icon, description, subcategories = [], order } = req.body;
+    const {
+      name,
+      slug,
+      icon,
+      description,
+      subcategories = [],
+      order,
+    } = req.body;
 
     if (!name || typeof name !== "string") {
-      return res.status(400).json({ success: false, error: "Name is required" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Name is required" });
     }
 
-    const finalSlug = slug && typeof slug === "string" && slug.trim()
-      ? await ensureUniqueCategorySlug(db, slug)
-      : await ensureUniqueCategorySlug(db, name);
+    const finalSlug =
+      slug && typeof slug === "string" && slug.trim()
+        ? await ensureUniqueCategorySlug(db, slug)
+        : await ensureUniqueCategorySlug(db, name);
 
     const newCategory: any = {
       name: name.trim(),
@@ -707,7 +730,10 @@ export const createCategory: RequestHandler = async (req, res) => {
       try {
         const db = getDatabase();
         const { name, icon, description, subcategories = [], order } = req.body;
-        const altSlug = await ensureUniqueCategorySlug(db, `${name}-${Date.now()}`);
+        const altSlug = await ensureUniqueCategorySlug(
+          db,
+          `${name}-${Date.now()}`,
+        );
         const result = await db.collection("categories").insertOne({
           name: name.trim(),
           slug: altSlug,
@@ -719,12 +745,17 @@ export const createCategory: RequestHandler = async (req, res) => {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        return res.json({ success: true, data: { _id: result.insertedId.toString(), slug: altSlug } });
+        return res.json({
+          success: true,
+          data: { _id: result.insertedId.toString(), slug: altSlug },
+        });
       } catch (e: any) {
         console.error("Second attempt failed:", e?.message || e);
       }
     }
-    res.status(500).json({ success: false, error: "Failed to create category" });
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to create category" });
   }
 };
 
