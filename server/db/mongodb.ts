@@ -46,7 +46,7 @@ export async function connectToDatabase() {
 
     return { client, db };
   } catch (error: any) {
-    console.error("❌ Failed to connect to MongoDB Atlas:");
+    console.error("❌ Failed to connect to MongoDB:");
     console.error("📋 Error details:", {
       name: error.name,
       message: error.message,
