@@ -334,16 +334,24 @@ export default function ChatBot({
 
     // Send via WebSocket if connected
     if (wsRef.current && connectionStatus === 'connected') {
-      wsRef.current.send(JSON.stringify({
-        type: 'message',
-        message: currentMessage,
-        propertyId,
-        sellerId,
-        conversationId,
-        isBotMode
-      }));
-    } else {
-      // Fallback to HTTP API
+      try {
+        wsRef.current.send(JSON.stringify({
+          type: 'message',
+          message: currentMessage,
+          propertyId,
+          sellerId,
+          conversationId,
+          isBotMode
+        }));
+        // Optimistically mark as sent once queued to WS
+        updateMessageStatus(userMessage.id, 'sent');
+      } catch (err) {
+        console.error('WebSocket send failed, falling back to HTTP:', err);
+      }
+    }
+
+    // If WS isn't connected or send failed, use HTTP fallback
+    if (!wsRef.current || connectionStatus !== 'connected') {
       try {
         const response = await fetch(apiEndpoint, {
           method: 'POST',
@@ -362,13 +370,16 @@ export default function ChatBot({
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
+          // Mark user's message as sent
+          updateMessageStatus(userMessage.id, 'sent');
+
           if (data.conversationId) {
             setConversationId(data.conversationId);
           }
-          
-          // Add bot response
+
+          // Add bot/human response
           if (data.response) {
             addMessage({
               id: data.messageId || (Date.now() + 1).toString(),
@@ -378,9 +389,13 @@ export default function ChatBot({
               type: 'text'
             });
           }
+        } else {
+          // Ensure the UI doesn't spin forever
+          updateMessageStatus(userMessage.id, 'sent');
         }
       } catch (error) {
         console.error('Error sending message:', error);
+        updateMessageStatus(userMessage.id, 'sent');
         addMessage({
           id: Date.now().toString(),
           message: 'Sorry, there was an error sending your message. Please try again.',
