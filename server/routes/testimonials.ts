@@ -80,18 +80,21 @@ export const getAllTestimonials: RequestHandler = async (req, res) => {
 export const getPublicTestimonials: RequestHandler = async (req, res) => {
   try {
     const db = getDatabase();
-    const { featured } = req.query;
+    const { featured, propertyId } = req.query as { featured?: string; propertyId?: string };
 
     const filter: any = { status: "approved" };
     if (featured === "true") {
       filter.featured = true;
+    }
+    if (propertyId) {
+      filter.propertyId = propertyId;
     }
 
     const testimonials = await db
       .collection("testimonials")
       .find(filter, { projection: { email: 0 } })
       .sort({ featured: -1, createdAt: -1 })
-      .limit(20)
+      .limit(50)
       .toArray();
 
     const response: ApiResponse<Testimonial[]> = {
