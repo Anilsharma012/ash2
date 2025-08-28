@@ -26,14 +26,17 @@ export default function BannerSlots({
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/banners/${position}`);
+      const response = await fetch(`/api/banners?active=true`);
       const data = await response.json();
 
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setBanners(data.data);
+      } else {
+        setBanners([]);
       }
     } catch (error) {
       console.error("Error fetching banners:", error);
+      setBanners([]);
     } finally {
       setLoading(false);
     }
@@ -76,7 +79,7 @@ export default function BannerSlots({
           }`}
         >
           <img
-            src={banner.image}
+            src={(banner as any).imageUrl || (banner as any).image}
             alt={banner.title}
             className="w-full h-full object-cover"
           />
@@ -89,10 +92,8 @@ export default function BannerSlots({
             <h3 className="text-white text-lg md:text-xl font-bold mb-2 drop-shadow-lg">
               {banner.title}
             </h3>
-            {banner.description && (
-              <p className="text-white text-sm md:text-base drop-shadow-lg opacity-90">
-                {banner.description}
-              </p>
+            {false && (
+              <p className="text-white text-sm md:text-base drop-shadow-lg opacity-90"></p>
             )}
 
             {banner.link && (
