@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { getDatabase } from "../db/mongodb";
+import { getDatabase, connectToDatabase } from "../db/mongodb";
 import { AdPackage, Transaction, ApiResponse } from "@shared/types";
 import { ObjectId, Db } from "mongodb";
 
