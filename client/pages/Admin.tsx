@@ -305,12 +305,13 @@ export default function Admin() {
           setLoading(false);
           setOfflineMode(true);
         }
-      } catch (error) {
-        console.error("⚠️ Connectivity test failed:", {
-          error: error.message || error,
-          name: error.name,
-          stack: error.stack,
-          cause: error.cause,
+      } catch (error: any) {
+        const errMsg =
+          error?.message || (typeof error === "string" ? error : JSON.stringify(error));
+        console.error("⚠️ Connectivity test failed:", errMsg, {
+          name: error?.name,
+          stack: error?.stack,
+          cause: error?.cause,
         });
 
         // Determine the type of error and respond accordingly
