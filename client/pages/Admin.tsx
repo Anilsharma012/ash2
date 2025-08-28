@@ -298,7 +298,17 @@ export default function Admin() {
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          let detail = "";
+          try {
+            const ct = response.headers.get("content-type") || "";
+            if (ct.includes("application/json")) {
+              const j = await response.json();
+              detail = j?.error || j?.message || JSON.stringify(j);
+            } else {
+              detail = await response.text();
+            }
+          } catch {}
+          throw new Error(`HTTP ${response.status}: ${response.statusText || ""} ${detail}`.trim());
         }
 
         // If we get here, connectivity is working
