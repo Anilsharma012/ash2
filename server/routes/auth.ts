@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { getDatabase } from "../db/mongodb";
+import { getDatabase, connectToDatabase } from "../db/mongodb";
 import { User, ApiResponse } from "@shared/types";
 import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
