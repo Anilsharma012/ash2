@@ -168,16 +168,13 @@ export default function Conversations() {
     if (!token) return;
 
     try {
-      const resp = await (window as any).api(`conversations/${convId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-        transport: "xhr",
-      });
-      if (resp.success) {
-        const payload = resp.data?.data ?? resp.json?.data ?? resp.data;
+      const resp = await xhr("GET", `conversations/${convId}/messages`);
+      if (resp.ok) {
+        const payload = resp.data?.data ?? resp.data;
         const arr = Array.isArray(payload?.messages) ? payload.messages : Array.isArray(payload) ? payload : [];
         setMessages(arr);
       } else if (resp.status === 404 || resp.status === 403) {
-        setError(resp.error || "Conversation not found");
+        setError(resp.data?.error || "Conversation not found");
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
