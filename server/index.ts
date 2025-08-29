@@ -1745,6 +1745,12 @@ export function createServer() {
     requireAdmin,
     seedChatData,
   );
+  app.post(
+    "/api/admin/dev/reply-as-owner/:conversationId",
+    authenticateToken,
+    requireAdmin,
+    replyAsOwner,
+  );
 
   // Footer management routes
   app.get("/api/footer/links", getActiveFooterLinks);
