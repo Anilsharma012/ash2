@@ -122,23 +122,33 @@ export default function ChatConversation() {
     if (!token || !id) return;
 
     try {
-      const response = await fetch(`/api/conversations/my`, {
+      const resp = await (window as any).api(`conversations/my`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        const conv = data.data.find((c: any) => c._id === id);
+      if (resp.success) {
+        const list = resp.data || resp.json?.data || [];
+        const normalizeId = (val: any) => {
+          if (!val) return "";
+          if (typeof val === "string") return val;
+          if (val.$oid) return val.$oid;
+          if (val.oid) return val.oid;
+          try {
+            return val.toString ? val.toString() : String(val);
+          } catch {
+            return String(val);
+          }
+        };
+        const conv = list.find((c: any) => normalizeId(c._id) === id);
         if (conv) {
           setConversation(conv);
         } else {
           setError("Conversation not found");
         }
       } else {
-        setError(data.error || "Failed to load conversation");
+        setError(resp.error || "Failed to load conversation");
       }
     } catch (error) {
       setError("Network error. Please try again.");
