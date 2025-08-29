@@ -126,6 +126,7 @@ export default function Conversations() {
       setLoading(true);
       const resp = await (window as any).api(`conversations/my`, {
         headers: { Authorization: `Bearer ${token}` },
+        transport: "xhr",
       });
       if (resp.success) {
         const payload = resp.data?.data ?? resp.json?.data ?? resp.data;
