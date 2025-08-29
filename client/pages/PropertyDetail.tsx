@@ -163,13 +163,21 @@ export default function PropertyDetail() {
 
   const trackView = async () => {
     try {
-      console.log("📊 Tracking view for property:", id);
-      await (window as any).api(`analytics/view/${id}`, {
-        method: "POST",
-      });
-      console.log("✅ View tracked successfully");
-    } catch (error) {
-      console.error("Error tracking view:", error);
+      const url = `/api/analytics/view/${id}`;
+      // Prefer Beacon API for fire-and-forget
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: "application/json" });
+        navigator.sendBeacon(url, blob);
+        return;
+      }
+      // Fallback with keepalive + short timeout
+      const controller = new AbortController();
+      const to = setTimeout(() => { try { controller.abort("timeout"); } catch {} }, 3000);
+      await fetch(url, { method: "POST", keepalive: true, signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ts: Date.now() }) });
+      clearTimeout(to);
+    } catch (error: any) {
+      // Quietly ignore analytics timeouts/network issues
+      console.warn("Analytics trackView skipped:", error?.name || "Error");
     }
   };
 
