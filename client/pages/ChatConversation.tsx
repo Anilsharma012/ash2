@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Phone, MoreVertical, Circle, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
 import { useAuth } from "../hooks/useAuth";
 import { io, Socket } from "socket.io-client";
+import { toast } from "../components/ui/use-toast";
 
 interface Message {
   _id: string;
@@ -75,7 +77,7 @@ export default function ChatConversation() {
     setSocket(socketConnection);
 
     // Join conversation room when conversation is loaded
-    if (id) {
+    if (id && id !== "undefined") {
       socketConnection.emit('join-conversation', id);
     }
 
@@ -90,9 +92,8 @@ export default function ChatConversation() {
           text: messageData.text,
           createdAt: new Date(messageData.createdAt)
         };
-        
+
         setMessages(prev => {
-          // Avoid duplicates
           if (prev.find(m => m._id === newMsg._id)) {
             return prev;
           }
@@ -110,7 +111,7 @@ export default function ChatConversation() {
     });
 
     return () => {
-      if (id) {
+      if (id && id !== "undefined") {
         socketConnection.emit('leave-conversation', id);
       }
       socketConnection.disconnect();
@@ -119,7 +120,7 @@ export default function ChatConversation() {
 
   // Fetch conversation details
   const fetchConversation = async () => {
-    if (!token || !id) return;
+    if (!token || !id || id === "undefined") return;
 
     try {
       const resp = await (window as any).api(`conversations/my`, {
@@ -157,7 +158,7 @@ export default function ChatConversation() {
 
   // Fetch messages
   const fetchMessages = async () => {
-    if (!token || !id) return;
+    if (!token || !id || id === "undefined") return;
 
     try {
       const response = await fetch(`/api/conversations/${id}/messages`, {
@@ -165,6 +166,11 @@ export default function ChatConversation() {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (response.status === 403 || response.status === 404) {
+        setError("Conversation not found");
+        return;
+      }
 
       const data = await response.json();
 
@@ -184,8 +190,9 @@ export default function ChatConversation() {
       return;
     }
 
-    if (!id) {
-      navigate("/chat");
+    if (!id || id === "undefined") {
+      toast({ title: "Open a property and tap Message Owner" });
+      navigate("/chats");
       return;
     }
 
@@ -198,7 +205,7 @@ export default function ChatConversation() {
   }, [id, isAuthenticated, token]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !id || sendingMessage || !token) return;
+    if (!newMessage.trim() || !id || id === "undefined" || sendingMessage || !token) return;
 
     setSendingMessage(true);
     setError("");
@@ -218,7 +225,6 @@ export default function ChatConversation() {
       const data = await response.json();
 
       if (data.success) {
-        // Message will be added via Socket.io, so just clear the input
         setNewMessage("");
       } else {
         setError(data.error || "Failed to send message");
@@ -255,7 +261,7 @@ export default function ChatConversation() {
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Conversation not found</h2>
           <p className="text-gray-600 mb-4">The conversation you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate("/chat")} className="bg-[#C70000] hover:bg-[#A60000] text-white">
+          <Button onClick={() => navigate("/chats")} className="bg-[#C70000] hover:bg-[#A60000] text-white">
             Back to Chats
           </Button>
         </div>
@@ -266,6 +272,23 @@ export default function ChatConversation() {
   // Determine other participant
   const otherParticipant = conversation.buyer === user?.id ? conversation.sellerData : conversation.buyerData;
   const property = conversation.property;
+
+  // Mark conversation as read on focus
+  useEffect(() => {
+    if (!id || !token) return;
+    const onFocus = async () => {
+      try {
+        await fetch(`/api/conversations/${id}/read`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [id, token]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -343,56 +366,81 @@ export default function ChatConversation() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message._id}
-            className={`flex ${
-              message.sender === user?.id ? "justify-end" : "justify-start"
-            }`}
-            data-testid={message.sender === user?.id ? "msg-outgoing" : "msg-incoming"}
-          >
+        {messages.map((message) => {
+          const isMe = message.sender === user?.id;
+          const readCount = (message as any).readBy?.length || 1;
+          const isRead = isMe && readCount > 1;
+          return (
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                message.sender === user?.id
-                  ? "bg-[#C70000] text-white"
-                  : "bg-white text-gray-900"
-              } shadow-sm`}
+              key={message._id}
+              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+              data-testid={isMe ? "msg-outgoing" : "msg-incoming"}
             >
-              <p className="text-sm">{message.text}</p>
-              <p
-                className={`text-xs mt-1 ${
-                  message.sender === user?.id
-                    ? "text-red-100"
-                    : "text-gray-500"
-                }`}
+              <div
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  isMe ? "bg-[#C70000] text-white" : "bg-white text-gray-900"
+                } shadow-sm`}
               >
-                {formatTime(message.createdAt)}
-              </p>
+                <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                <div className={`flex items-center gap-2 text-xs mt-1 ${isMe ? "text-red-100" : "text-gray-500"}`}>
+                  <span>{formatTime(message.createdAt)}</span>
+                  {isMe && (
+                    <span>{isRead ? "✓✓" : "✓"}</span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t p-4">
-        <div className="flex items-center space-x-2">
-          <Input
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || sendingMessage}
-            className="bg-[#C70000] hover:bg-[#A60000] text-white p-2"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+      {conversation && (
+        <div className="bg-white border-t p-4">
+          <div className="flex items-end space-x-2">
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              id="file-input"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 10 * 1024 * 1024) {
+                  setError("File too large (max 10MB)");
+                  return;
+                }
+                // Attachments upload not implemented; show toast
+                toast({ title: "Attachments coming soon", description: file.name });
+              }}
+            />
+            <Button variant="outline" className="px-2" onClick={() => document.getElementById("file-input")?.click()}>
+              📎
+            </Button>
+            <Textarea
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              className="flex-1 resize-y max-h-40"
+              rows={2}
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sendingMessage}
+              className="bg-[#C70000] hover:bg-[#A60000] text-white p-2"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
