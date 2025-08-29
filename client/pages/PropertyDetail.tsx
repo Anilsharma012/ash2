@@ -330,9 +330,13 @@ export default function PropertyDetail() {
               <Button variant="ghost" size="sm">
                 <Share2 className="h-4 w-4" />
               </Button>
-              <Button size="sm" className="bg-[#C70000] hover:bg-[#A60000] text-white" onClick={handleStartChat}>
-                <MessageCircle className="h-4 w-4 mr-1" />
-                Message Owner
+              <Button size="sm" disabled={startingChat} className="bg-[#C70000] hover:bg-[#A60000] text-white" onClick={handleStartChat}>
+                {startingChat ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1" />
+                ) : (
+                  <MessageCircle className="h-4 w-4 mr-1" />
+                )}
+                {startingChat ? "Starting..." : "Message Owner"}
               </Button>
             </div>
           </div>
