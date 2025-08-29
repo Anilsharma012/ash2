@@ -1737,6 +1737,12 @@ export function createServer() {
     requireAdmin,
     clearAllTransactions,
   );
+  app.post(
+    "/api/admin/dev/seed-chat",
+    authenticateToken,
+    requireAdmin,
+    seedChatData,
+  );
 
   // Footer management routes
   app.get("/api/footer/links", getActiveFooterLinks);
