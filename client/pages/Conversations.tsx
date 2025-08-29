@@ -119,7 +119,9 @@ export default function Conversations() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resp.success) {
-        setConversations(resp.data || resp.json?.data || []);
+        const payload = resp.data?.data ?? resp.json?.data ?? resp.data;
+        const list = Array.isArray(payload) ? payload : [];
+        setConversations(list);
       } else {
         setError(resp.error || "Failed to load conversations");
       }
