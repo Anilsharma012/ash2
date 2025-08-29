@@ -324,37 +324,32 @@ export const getConversationMessages: RequestHandler = async (req, res) => {
     const db = getDatabase();
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { page = "1", limit = "50" } = req.query;
+    const { page = "1", limit = "50", cursor } = req.query as any;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
 
     if (!ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid conversation ID",
-      });
+      return res.status(400).json({ success: false, error: "Invalid conversation ID" });
     }
 
     // Check if user is participant in conversation
-    const conversation = await db.collection("conversations").findOne({
-      _id: new ObjectId(id),
-      participants: userId,
-    });
+    const conversation = await db.collection("conversations").findOne({ _id: new ObjectId(id), participants: userId });
 
     if (!conversation) {
-      return res.status(403).json({
-        success: false,
-        error: "Access denied",
-      });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
+    const query: any = { conversationId: id };
+    if (cursor) {
+      const d = new Date(cursor);
+      if (!isNaN(d.getTime())) query.createdAt = { $lt: d };
     }
 
     const messages = await db
       .collection("messages")
-      .find({ conversationId: id })
+      .find(query)
       .sort({ createdAt: -1 })
-      .skip(skip)
       .limit(limitNum)
       .toArray();
 
