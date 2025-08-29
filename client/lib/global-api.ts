@@ -83,43 +83,43 @@ function api(p: string, o: any = {}) {
       }
     });
 
-  return doFetch()
-    .then(async (r) => {
-      clearTimeout(timeoutId);
-
-      console.log("✅ Global API response:", {
-        url: url,
-        status: r.status,
-        ok: r.ok,
-        statusText: r.statusText,
-      });
-
-      const { ok, status, data } = await safeReadResponse(r);
-
-      return { ok, status, success: ok, data, json: data };
-    })
-    .catch(async (error: any) => {
-      // Try XHR fallback on generic fetch failure
-      if (String(error?.message || "").includes("Failed to fetch")) {
-        console.warn("⚠️ fetch failed, attempting XHR fallback:", url);
-        const res = await xhrFallback();
+  try {
+    return doFetch()
+      .then(async (r) => {
         clearTimeout(timeoutId);
-        return { ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any;
-      }
 
+        console.log("✅ Global API response", { url, status: r.status, ok: r.ok });
+        const { ok, status, data } = await safeReadResponse(r);
+        return { ok, status, success: ok, data, json: data };
+      })
+      .catch(async (error: any) => {
+        // Try XHR fallback on generic fetch failure
+        if (String(error?.message || "").includes("Failed to fetch")) {
+          console.warn("⚠️ fetch failed, attempting XHR fallback:", url);
+          const res = await xhrFallback();
+          clearTimeout(timeoutId);
+          return { ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any;
+        }
+
+        clearTimeout(timeoutId);
+        if (error.name === "AbortError" || error?.message?.includes("aborted")) {
+          const timeoutError = new Error(`Request timeout: ${url}`);
+          timeoutError.name = "TimeoutError";
+          throw timeoutError;
+        }
+
+        const networkError = new Error(`Network error: Cannot connect to server at ${url}`);
+        networkError.name = "NetworkError";
+        throw networkError;
+      });
+  } catch (syncError: any) {
+    // Synchronous throw from instrumented fetch; fallback to XHR
+    console.warn("⚠️ fetch threw synchronously, using XHR fallback:", url);
+    return xhrFallback().then((res) => {
       clearTimeout(timeoutId);
-      if (error.name === "AbortError" || error?.message?.includes("aborted")) {
-        const timeoutError = new Error(`Request timeout: ${url}`);
-        timeoutError.name = "TimeoutError";
-        throw timeoutError;
-      }
-
-      const networkError = new Error(
-        `Network error: Cannot connect to server at ${url}`,
-      );
-      networkError.name = "NetworkError";
-      throw networkError;
+      return { ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any;
     });
+  }
 }
 
 // Make it globally available
