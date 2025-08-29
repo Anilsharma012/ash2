@@ -188,23 +188,15 @@ export default function Conversations() {
     try {
       setSending(true);
       const convId = normalizeId(selectedConversation._id);
-      const resp = await (window as any).api(
-        `conversations/${convId}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: { text: newMessage },
-          transport: "xhr",
-        },
-      );
+      const resp = await xhr("POST", `conversations/${convId}/messages`, { text: newMessage });
 
-      if (resp.success) {
+      if (resp.ok) {
         const msg = resp.data?.data || resp.data;
         setMessages((prev) => [...prev, msg]);
         setNewMessage("");
         fetchConversations();
       } else {
-        setError(resp.error || "Failed to send message");
+        setError(resp.data?.error || "Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
