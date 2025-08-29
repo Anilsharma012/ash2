@@ -1274,12 +1274,13 @@ export function createServer() {
   app.get("/api/chat/unread-count", authenticateToken, getUnreadCount);
 
   // OLX-style Conversation routes
-  app.post("/api/conversations", authenticateToken, createConversation);
+  app.post("/api/conversations", authenticateToken, createConversation); // supports create-or-get by propertyId
   app.post(
     "/api/conversations/find-or-create",
     authenticateToken,
     findOrCreateConversation,
   );
+  app.get("/api/conversations", authenticateToken, getMyConversations); // alias
   app.get("/api/conversations/my", authenticateToken, getMyConversations);
   app.get(
     "/api/conversations/:id/messages",
@@ -1290,6 +1291,11 @@ export function createServer() {
     "/api/conversations/:id/messages",
     authenticateToken,
     sendMessageToConversation,
+  );
+  app.post(
+    "/api/conversations/:id/read",
+    authenticateToken,
+    require('./routes/conversations').markConversationRead,
   );
 
   // Admin conversation routes (Support Inbox)
