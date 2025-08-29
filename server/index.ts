@@ -158,6 +158,7 @@ import {
 
 import { handleDemo } from "./routes/demo";
 import { seedDatabase } from "./routes/seed";
+import { replyAsOwner } from "./routes/dev-chat";
 import { initializeSystem } from "./routes/init";
 import {
   getAdminSettings,
