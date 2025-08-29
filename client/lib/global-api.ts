@@ -45,14 +45,45 @@ function api(p: string, o: any = {}) {
     baseHeaders["Content-Type"] = "application/json";
   }
 
-  return fetch(url, {
+  const doFetch = () => fetch(url, {
     method,
     headers: baseHeaders,
     body: bodyContent,
     signal: controller.signal,
     keepalive: !!o.keepalive,
     credentials: o.credentials || "same-origin",
-  })
+    mode: "cors",
+    cache: o.cache || "no-store",
+    referrerPolicy: "no-referrer",
+  });
+
+  const xhrFallback = () =>
+    new Promise<{ ok: boolean; status: number; data: any }>((resolve) => {
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        Object.entries(baseHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+        xhr.timeout = timeoutMs;
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4) {
+            let parsed: any = {};
+            try {
+              parsed = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+            } catch {
+              parsed = { raw: xhr.responseText };
+            }
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: parsed });
+          }
+        };
+        xhr.ontimeout = () => resolve({ ok: false, status: 408, data: { error: "Request timeout" } });
+        xhr.onerror = () => resolve({ ok: false, status: 0, data: { error: "Network error" } });
+        xhr.send(bodyContent || null);
+      } catch (e: any) {
+        resolve({ ok: false, status: 0, data: { error: e?.message || "Network error" } });
+      }
+    });
+
+  return doFetch()
     .then(async (r) => {
       clearTimeout(timeoutId);
 
@@ -65,45 +96,29 @@ function api(p: string, o: any = {}) {
 
       const { ok, status, data } = await safeReadResponse(r);
 
-      return {
-        ok,
-        status,
-        success: ok,
-        data: data,
-        json: data, // Keep for compatibility
-      };
+      return { ok, status, success: ok, data, json: data };
     })
-    .catch((error: any) => {
+    .catch(async (error: any) => {
+      // Try XHR fallback on generic fetch failure
+      if (String(error?.message || "").includes("Failed to fetch")) {
+        console.warn("⚠️ fetch failed, attempting XHR fallback:", url);
+        const res = await xhrFallback();
+        clearTimeout(timeoutId);
+        return { ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any;
+      }
+
       clearTimeout(timeoutId);
-
-      try {
-        console.error(`❌ Global API error (${p}): ${error?.name || "Error"}: ${error?.message || String(error)}`);
-      } catch {}
-      // Detailed context in a separate object for structured logs
-      console.debug({ url, endpoint: p, name: error?.name, message: error?.message });
-
-      // Provide more specific error messages
       if (error.name === "AbortError" || error?.message?.includes("aborted")) {
         const timeoutError = new Error(`Request timeout: ${url}`);
         timeoutError.name = "TimeoutError";
         throw timeoutError;
       }
 
-      if (error.message.includes("Failed to fetch")) {
-        const networkError = new Error(
-          `Network error: Cannot connect to server at ${url}`,
-        );
-        networkError.name = "NetworkError";
-        throw networkError;
-      }
-
-      // Re-throw the original error with more context
-      const enhancedError = new Error(
-        `API request failed: ${error.message} (${url})`,
+      const networkError = new Error(
+        `Network error: Cannot connect to server at ${url}`,
       );
-      enhancedError.name = error.name;
-      enhancedError.cause = error;
-      throw enhancedError;
+      networkError.name = "NetworkError";
+      throw networkError;
     });
 }
 
