@@ -397,6 +397,7 @@ import {
   createSampleTransactions,
   clearAllTransactions,
 } from "./routes/sample-transactions";
+import { seedChatData } from "./routes/dev-chat";
 
 // Footer management routes
 import {
