@@ -25,6 +25,8 @@ import Advertise from "./pages/Advertise";
 import Chat from "./pages/Chat";
 import ChatPage from "./pages/ChatPage";
 import ChatConversation from "./pages/ChatConversation";
+import Conversations from "./pages/Conversations";
+import DevChatTest from "./pages/DevChatTest";
 import MyAccount from "./pages/MyAccount";
 import User from "./pages/User";
 import Seller from "./pages/Seller";
@@ -123,11 +125,10 @@ function App() {
                   <Route path="/properties/:id" element={<PropertyDetail />} />
                   <Route path="/chat" element={<Chat />} />
                   <Route path="/chat/:conversationId" element={<ChatPage />} />
-                  <Route
-                    path="/conversation/:id"
-                    element={<ChatConversation />}
-                  />
+                  <Route path="/chats" element={<Conversations />} />
+                  <Route path="/conversation/:id" element={<ChatConversation />} />
                   <Route path="/test-chat/:id" element={<TestChat />} />
+                  <Route path="/dev/chat-test" element={<DevChatTest />} />
                   <Route path="/step3-test" element={<Step3Test />} />
                   <Route path="/my-account" element={<MyAccount />} />
                   <Route path="/agents" element={<Agents />} />
