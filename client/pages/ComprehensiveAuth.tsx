@@ -170,23 +170,9 @@ const ComprehensiveAuth = () => {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phone: formData.phone }),
-      });
+      const { data } = await api.post("auth/send-otp", { phone: formData.phone });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error("Failed to parse OTP send response:", parseError);
-        throw new Error("Invalid response from server");
-      }
-
-      if (response.ok && data.success) {
+      if (data.success) {
         setOtpSent(true);
         setOtpTimer(60);
         setSuccess("OTP sent successfully! Use 123456 for demo");
