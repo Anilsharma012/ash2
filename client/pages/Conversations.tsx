@@ -34,24 +34,26 @@ interface ConversationMessage {
 
 interface Conversation {
   _id: string;
-  propertyId: string;
-  participants: string[];
-  createdAt: string;
-  lastMessageAt: string;
-  property: {
-    _id: string;
-    title: string;
-    price: number;
-    location: { address: string };
-    images: string[];
+  propertyId?: string;
+  participants?: string[];
+  createdAt?: string;
+  lastMessageAt?: string;
+  property?: {
+    _id?: string;
+    title?: string;
+    price?: number;
+    location?: { address?: string };
+    images?: string[];
   };
-  participantDetails: Array<{
+  participantDetails?: Array<{
     _id: string;
     name: string;
     userType: string;
   }>;
-  lastMessage: ConversationMessage;
-  unreadCount: number;
+  buyerData?: { _id: string; name: string; userType: string } | null;
+  sellerData?: { _id: string; name: string; userType: string } | null;
+  lastMessage?: Partial<ConversationMessage> & { text?: string };
+  unreadCount?: number;
 }
 
 export default function Conversations() {
@@ -229,20 +231,17 @@ export default function Conversations() {
   };
 
   const filteredConversations = conversations.filter((conversation) => {
-    const property = conversation.property;
-    const otherParticipants = conversation.participantDetails.filter(
-      (p) => p._id !== user?.id,
-    );
+    const property = conversation.property || (conversation as any).propertyDetails?.[0];
+    const othersArray = conversation.participantDetails || [conversation.buyerData, conversation.sellerData].filter(Boolean) as any[] || [];
+    const otherParticipants = othersArray.filter((p: any) => p && p._id !== user?.id);
 
-    return (
-      property?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      otherParticipants.some((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      ) ||
-      conversation.lastMessage?.message
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
-    );
+    const haystacks = [
+      property?.title || "",
+      (conversation.lastMessage?.message || conversation.lastMessage?.text || ""),
+      otherParticipants.map((p: any) => p.name || "").join(" "),
+    ].join(" ").toLowerCase();
+
+    return haystacks.includes(searchQuery.toLowerCase());
   });
 
   if (!isAuthenticated) {
@@ -285,10 +284,9 @@ export default function Conversations() {
 
   // Individual conversation view
   if (selectedConversation) {
-    const otherParticipants = selectedConversation.participantDetails.filter(
-      (p) => p._id !== user?.id,
-    );
-    const property = selectedConversation.property;
+    const othersArray = selectedConversation.participantDetails || [selectedConversation.buyerData, selectedConversation.sellerData].filter(Boolean) as any[] || [];
+    const otherParticipants = othersArray.filter((p: any) => p && p._id !== user?.id);
+    const property = selectedConversation.property || (selectedConversation as any).propertyDetails?.[0];
 
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -474,10 +472,9 @@ export default function Conversations() {
         ) : (
           <div className="space-y-1">
             {filteredConversations.map((conversation) => {
-              const otherParticipants = conversation.participantDetails.filter(
-                (p) => p._id !== user?.id,
-              );
-              const property = conversation.property;
+              const othersArray = conversation.participantDetails || [conversation.buyerData, conversation.sellerData].filter(Boolean) as any[] || [];
+              const otherParticipants = othersArray.filter((p: any) => p && p._id !== user?.id);
+              const property = conversation.property || (conversation as any).propertyDetails?.[0];
 
               return (
                 <div
