@@ -110,76 +110,56 @@ export const createConversation: RequestHandler = async (req, res) => {
   try {
     const db = getDatabase();
     const userId = (req as any).userId;
-    const { propertyId, participants } = req.body;
+    const { propertyId, participants, ownerId } = req.body;
 
-    if (!propertyId || !participants || !Array.isArray(participants)) {
-      return res.status(400).json({
-        success: false,
-        error: "propertyId and participants array are required",
-      });
+    if (!propertyId || !ObjectId.isValid(propertyId)) {
+      return res.status(400).json({ success: false, error: "Invalid property ID" });
     }
 
-    // Ensure userId is in participants
-    const allParticipants = [...new Set([userId, ...participants])];
-
-    // Validate property exists
-    if (!ObjectId.isValid(propertyId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid property ID",
-      });
-    }
-
-    const property = await db.collection("properties").findOne({
-      _id: new ObjectId(propertyId),
-    });
-
+    const property = await db.collection("properties").findOne({ _id: new ObjectId(propertyId) });
     if (!property) {
-      return res.status(404).json({
-        success: false,
-        error: "Property not found",
-      });
+      return res.status(404).json({ success: false, error: "Property not found" });
     }
 
-    // Check if conversation already exists for this property and participants
+    const resolvedOwner = property.owner || property.seller || property.postedBy || property.user || property.createdBy || property.ownerId || property.sellerId;
+    const sellerId = typeof resolvedOwner === 'object' ? resolvedOwner.toString() : resolvedOwner;
+
+    if (ownerId && ownerId !== sellerId) {
+      return res.status(400).json({ success: false, error: "ownerId does not match property owner" });
+    }
+
+    // Prefer participants if provided, else default to buyer + seller
+    const allParticipants = Array.isArray(participants) && participants.length
+      ? [...new Set([userId, ...participants])]
+      : [userId, sellerId].filter(Boolean);
+
+    // Check for existing conversation (support both schemas)
     const existingConversation = await db.collection("conversations").findOne({
-      propertyId: propertyId,
-      participants: { $all: allParticipants },
+      $or: [
+        { property: new ObjectId(propertyId), buyer: userId, seller: sellerId },
+        { propertyId: propertyId, participants: { $all: allParticipants } },
+      ],
     });
 
     if (existingConversation) {
-      return res.json({
-        success: true,
-        data: {
-          _id: existingConversation._id,
-          propertyId: existingConversation.propertyId,
-          participants: existingConversation.participants,
-          createdAt: existingConversation.createdAt,
-          lastMessageAt: existingConversation.lastMessageAt,
-        },
-      });
+      return res.json({ success: true, data: { _id: existingConversation._id } });
     }
 
-    // Create new conversation
+    // Create new conversation with normalized fields
     const newConversation = {
+      property: new ObjectId(propertyId),
       propertyId,
+      buyer: userId,
+      seller: sellerId,
       participants: allParticipants,
       createdAt: new Date(),
       lastMessageAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const result = await db
-      .collection("conversations")
-      .insertOne(newConversation);
+    const result = await db.collection("conversations").insertOne(newConversation);
 
-    const response: ApiResponse<any> = {
-      success: true,
-      data: {
-        _id: result.insertedId,
-        ...newConversation,
-      },
-    };
+    const response: ApiResponse<any> = { success: true, data: { _id: result.insertedId } };
 
     res.status(201).json(response);
   } catch (error) {
