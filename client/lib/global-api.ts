@@ -29,10 +29,11 @@ function api(p: string, o: any = {}) {
 
   // Add timeout and better error handling
   const controller = new AbortController();
+  const timeoutMs = typeof o.timeout === "number" ? o.timeout : 15000;
   const timeoutId = setTimeout(() => {
-    controller.abort();
-    console.warn("⏰ API request timeout after 15 seconds:", url);
-  }, 15000);
+    try { controller.abort("timeout"); } catch {}
+    console.warn(`⏰ API request timeout after ${timeoutMs}ms:`, url);
+  }, timeoutMs);
 
   return fetch(url, {
     method: o.method || "GET",
@@ -43,6 +44,8 @@ function api(p: string, o: any = {}) {
     },
     body: bodyContent,
     signal: controller.signal,
+    keepalive: !!o.keepalive,
+    credentials: o.credentials || "same-origin",
   })
     .then(async (r) => {
       clearTimeout(timeoutId);
@@ -64,19 +67,17 @@ function api(p: string, o: any = {}) {
         json: data, // Keep for compatibility
       };
     })
-    .catch((error) => {
+    .catch((error: any) => {
       clearTimeout(timeoutId);
 
-      console.error("❌ Global API error:", {
-        url: url,
-        endpoint: p,
-        error: error.message,
-        name: error.name,
-        type: error.constructor.name,
-      });
+      try {
+        console.error(`❌ Global API error (${p}): ${error?.name || "Error"}: ${error?.message || String(error)}`);
+      } catch {}
+      // Detailed context in a separate object for structured logs
+      console.debug({ url, endpoint: p, name: error?.name, message: error?.message });
 
       // Provide more specific error messages
-      if (error.name === "AbortError") {
+      if (error.name === "AbortError" || error?.message?.includes("aborted")) {
         const timeoutError = new Error(`Request timeout: ${url}`);
         timeoutError.name = "TimeoutError";
         throw timeoutError;
