@@ -230,8 +230,10 @@ export default function PropertyDetail() {
       );
 
       if (response.success) {
-        // Navigate to conversation page with conversation ID
-        navigate(`/conversation/${response.data._id}`);
+        // Navigate to conversation page with normalized conversation ID
+        const rawId = response.data?._id;
+        const convId = typeof rawId === "string" ? rawId : (rawId?.$oid || rawId?.oid || (rawId?.toString ? rawId.toString() : String(rawId)));
+        navigate(`/conversation/${convId}`);
       } else {
         toast({
           title: "Error",
