@@ -145,6 +145,7 @@ import {
   getConversationMessages as getConversationMessagesNew,
   sendMessageToConversation,
   findOrCreateConversation,
+  markConversationRead,
 } from "./routes/conversations";
 
 // Admin conversation routes
