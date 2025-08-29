@@ -214,9 +214,10 @@ export default function PropertyDetail() {
         return;
       }
 
-      // Use global API helper to find or create conversation
+      setStartingChat(true);
+      // Create or get conversation
       const response = await (window as any).api(
-        `/conversations/find-or-create`,
+        `conversations`,
         {
           method: "POST",
           headers: {
