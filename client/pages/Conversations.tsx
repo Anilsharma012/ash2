@@ -82,9 +82,17 @@ export default function Conversations() {
     };
   }, [isAuthenticated]);
 
+  const normalizeId = (val: any): string => {
+    if (!val) return "";
+    if (typeof val === "string") return val;
+    if ((val as any).$oid) return (val as any).$oid;
+    if ((val as any).oid) return (val as any).oid;
+    try { return String((val as any).toString()); } catch { return String(val); }
+  };
+
   useEffect(() => {
     if (conversationId && conversations.length > 0) {
-      const conv = conversations.find((c) => c._id === conversationId);
+      const conv = conversations.find((c) => normalizeId(c._id) === conversationId);
       if (conv) {
         setSelectedConversation(conv);
       }
@@ -93,10 +101,11 @@ export default function Conversations() {
 
   useEffect(() => {
     if (selectedConversation) {
-      fetchMessages(selectedConversation._id);
+      const cid = normalizeId(selectedConversation._id);
+      fetchMessages(cid);
       // Start polling for new messages every 5 seconds
       const interval = setInterval(
-        () => fetchMessages(selectedConversation._id),
+        () => fetchMessages(cid),
         5000,
       );
       setPollInterval(interval);
@@ -157,8 +166,9 @@ export default function Conversations() {
 
     try {
       setSending(true);
+      const convId = normalizeId(selectedConversation._id);
       const resp = await (window as any).api(
-        `conversations/${selectedConversation._id}/messages`,
+        `conversations/${convId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -184,7 +194,8 @@ export default function Conversations() {
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    window.history.pushState({}, "", `/chats?id=${conversation._id}`);
+    const cid = normalizeId(conversation._id);
+    window.history.pushState({}, "", `/chats?id=${cid}`);
   };
 
   const handleBackToList = () => {
@@ -459,7 +470,7 @@ export default function Conversations() {
 
               return (
                 <div
-                  key={conversation._id}
+                  key={normalizeId(conversation._id)}
                   onClick={() => handleConversationSelect(conversation)}
                   className="bg-white border-b p-4 hover:bg-gray-50 cursor-pointer"
                 >
