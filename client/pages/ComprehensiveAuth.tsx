@@ -252,26 +252,12 @@ const ComprehensiveAuth = () => {
         family_name: "User",
       };
 
-      const response = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          googleUser: mockGoogleUser,
-          userType: formData.userType,
-        }),
+      const { data } = await api.post("auth/google", {
+        googleUser: mockGoogleUser,
+        userType: formData.userType,
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error("Failed to parse Google auth response:", parseError);
-        throw new Error("Invalid response from server");
-      }
-
-      if (response.ok && data.success) {
+      if (data.success) {
         const { token, user } = data.data;
         login(token, user);
         redirectToCorrectDashboard(user.userType);
