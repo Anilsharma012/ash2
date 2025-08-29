@@ -188,7 +188,19 @@ export default function Conversations() {
     try {
       setSending(true);
       const convId = normalizeId(selectedConversation._id);
-      const resp = await xhr("POST", `conversations/${convId}/messages`, { text: newMessage });
+      let resp = await xhr("POST", `conversations/${convId}/messages`, { text: newMessage });
+
+      // If conversation id invalid or not found, try to find/create from property and retry once
+      if (!resp.ok && (resp.status === 404 || resp.status === 400)) {
+        const propId = (selectedConversation as any)?.property?._id || (selectedConversation as any)?.propertyId;
+        if (propId) {
+          const created = await xhr("POST", `conversations/find-or-create`, { propertyId: propId });
+          const newId = created.data?.data?._id || created.data?._id || created.data?.data?.conversationId || created.data?.conversationId;
+          if (created.ok && newId) {
+            resp = await xhr("POST", `conversations/${newId}/messages`, { text: newMessage });
+          }
+        }
+      }
 
       if (resp.ok) {
         const msg = resp.data?.data || resp.data;
