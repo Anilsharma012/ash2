@@ -182,10 +182,15 @@ export default function PropertyDetail() {
   };
 
   const handleCall = (phoneNumber: string) => {
-    // Track phone click
-    (window as any)
-      .api(`analytics/phone/${id}`, { method: "POST" })
-      .catch(console.error);
+    const url = `/api/analytics/phone/${id}`;
+    try {
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: "application/json" });
+        navigator.sendBeacon(url, blob);
+      } else {
+        fetch(url, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ts: Date.now() }) }).catch(() => {});
+      }
+    } catch {}
     window.open(`tel:${phoneNumber}`, "_self");
   };
 
