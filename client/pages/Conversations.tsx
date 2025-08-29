@@ -121,19 +121,41 @@ export default function Conversations() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const xhr = (method: string, endpoint: string, body?: any) => {
+    const url = createApiUrl(endpoint);
+    return new Promise<{ ok: boolean; status: number; data: any }>((resolve) => {
+      try {
+        const x = new XMLHttpRequest();
+        x.open(method.toUpperCase(), url, true);
+        if (token) x.setRequestHeader("Authorization", `Bearer ${token}`);
+        if (body) x.setRequestHeader("Content-Type", "application/json");
+        x.timeout = 12000;
+        x.onreadystatechange = () => {
+          if (x.readyState === 4) {
+            let parsed: any = {};
+            try { parsed = x.responseText ? JSON.parse(x.responseText) : {}; } catch { parsed = { raw: x.responseText }; }
+            resolve({ ok: x.status >= 200 && x.status < 300, status: x.status, data: parsed });
+          }
+        };
+        x.ontimeout = () => resolve({ ok: false, status: 408, data: { error: "timeout" } });
+        x.onerror = () => resolve({ ok: false, status: 0, data: { error: "network" } });
+        x.send(body ? JSON.stringify(body) : null);
+      } catch (e: any) {
+        resolve({ ok: false, status: 0, data: { error: e?.message || "network" } });
+      }
+    });
+  };
+
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      const resp = await (window as any).api(`conversations/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-        transport: "xhr",
-      });
-      if (resp.success) {
-        const payload = resp.data?.data ?? resp.json?.data ?? resp.data;
+      const resp = await xhr("GET", `conversations/my`);
+      if (resp.ok) {
+        const payload = resp.data?.data ?? resp.data;
         const list = Array.isArray(payload) ? payload : [];
         setConversations(list);
       } else {
-        setError(resp.error || "Failed to load conversations");
+        setError(resp.data?.error || "Failed to load conversations");
       }
     } catch (error) {
       setError("Network error. Please try again.");
