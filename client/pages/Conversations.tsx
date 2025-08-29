@@ -140,8 +140,9 @@ export default function Conversations() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resp.success) {
-        const arr = resp.data || resp.json?.data || [];
-        setMessages(Array.isArray(arr.messages) ? arr.messages : arr);
+        const payload = resp.data?.data ?? resp.json?.data ?? resp.data;
+        const arr = Array.isArray(payload?.messages) ? payload.messages : Array.isArray(payload) ? payload : [];
+        setMessages(arr);
       } else if (resp.status === 404 || resp.status === 403) {
         setError(resp.error || "Conversation not found");
       }
