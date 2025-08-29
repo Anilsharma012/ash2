@@ -18,13 +18,18 @@ export const safeReadResponse = async <T = any>(
   let data: T = {} as T;
 
   try {
-    const responseText = await response.text();
-    if (responseText.trim()) {
-      data = JSON.parse(responseText);
+    // Clone response to avoid "body stream already read" errors
+    const clone = response.clone();
+    const responseText = await clone.text().catch(() => "");
+    if (responseText && responseText.trim()) {
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        data = (responseText as unknown) as T;
+      }
     }
   } catch (parseError) {
     console.warn("Could not parse response as JSON:", parseError);
-    // For DELETE operations and other responses that might not have a body
     data = {} as T;
   }
 
