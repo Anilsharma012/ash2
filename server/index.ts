@@ -1297,7 +1297,7 @@ export function createServer() {
   app.post(
     "/api/conversations/:id/read",
     authenticateToken,
-    require('./routes/conversations').markConversationRead,
+    markConversationRead,
   );
 
   // Admin conversation routes (Support Inbox)
