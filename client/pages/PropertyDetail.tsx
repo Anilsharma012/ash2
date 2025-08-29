@@ -26,7 +26,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { toast } from "../components/ui/use-toast";
-import ChatBot from "../components/ChatBot";
+// import ChatBot from "../components/ChatBot";
 import ApiDiagnostic from "../components/ApiDiagnostic";
 import EnquiryModal from "../components/EnquiryModal";
 import PropertyReviews from "../components/PropertyReviews";
@@ -324,6 +324,10 @@ export default function PropertyDetail() {
               <Button variant="ghost" size="sm">
                 <Share2 className="h-4 w-4" />
               </Button>
+              <Button size="sm" className="bg-[#C70000] hover:bg-[#A60000] text-white" onClick={handleStartChat}>
+                <MessageCircle className="h-4 w-4 mr-1" />
+                Message Owner
+              </Button>
             </div>
           </div>
         </div>
@@ -551,11 +555,10 @@ export default function PropertyDetail() {
                 <div className="space-y-3 hidden md:block">
                   <Button
                     className="w-full bg-[#C70000] hover:bg-[#A60000] text-white flex items-center justify-center space-x-2 py-3"
-                    onClick={handleEnquiry}
-                    data-testid="enquiry-btn"
+                    onClick={handleStartChat}
                   >
-                    <Send className="h-4 w-4" />
-                    <span>Enquiry Now</span>
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Message Owner</span>
                   </Button>
 
                   <Button
@@ -588,14 +591,13 @@ export default function PropertyDetail() {
                 </div>
 
                 {/* Mobile Contact Actions - Grid Layout */}
-                <div className="grid grid-cols-3 gap-2 md:hidden">
+                <div className="grid grid-cols-4 gap-2 md:hidden">
                   <Button
                     className="bg-[#C70000] hover:bg-[#A60000] text-white flex flex-col items-center justify-center space-y-1 py-4"
-                    onClick={handleEnquiry}
-                    data-testid="enquiry-btn"
+                    onClick={handleStartChat}
                   >
-                    <Send className="h-5 w-5" />
-                    <span className="text-xs">Enquiry</span>
+                    <MessageCircle className="h-5 w-5" />
+                    <span className="text-xs">Message</span>
                   </Button>
 
                   <Button
@@ -664,21 +666,7 @@ export default function PropertyDetail() {
         </div>
       </div>
 
-      {/* ChatBot Integration */}
-      {property && (
-        <ChatBot
-          propertyId={property._id}
-          sellerId={property.userId}
-          sellerName={property.contactInfo.name}
-          propertyTitle={property.title}
-          propertyPrice={property.price}
-          propertyImage={property.images[0]}
-          propertyLocation={property.location.address}
-          position="bottom-right"
-          theme="red"
-          enableHumanHandoff={true}
-        />
-      )}
+      {/* AI bot disabled by default; direct chat is primary */}
 
       {/* Enquiry Modal */}
       {property && (
