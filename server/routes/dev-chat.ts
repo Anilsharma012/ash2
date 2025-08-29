@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import { getDatabase } from "../db/mongodb";
 import { ObjectId } from "mongodb";
+import type { RequestHandler } from "express";
 
 export const seedChatData: RequestHandler = async (req, res) => {
   try {
@@ -73,8 +74,43 @@ export const seedChatData: RequestHandler = async (req, res) => {
     const buyerConvCount = await db.collection("conversations").countDocuments({ buyer: buyerId.toString() });
     const ownerConvCount = await db.collection("conversations").countDocuments({ seller: ownerId.toString() });
 
-    res.json({ ok: true, buyerConvCount, ownerConvCount });
+    res.json({ ok: true, conversationId: conversation._id.toString(), buyerConvCount, ownerConvCount });
   } catch (error: any) {
     res.status(500).json({ ok: false, error: error.message });
+  }
+};
+
+export const replyAsOwner: RequestHandler = async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { conversationId } = req.params as any;
+    if (!ObjectId.isValid(conversationId)) {
+      return res.status(400).json({ ok: false, error: "Invalid conversation ID" });
+    }
+
+    const conv = await db.collection("conversations").findOne({ _id: new ObjectId(conversationId) });
+    if (!conv) return res.status(404).json({ ok: false, error: "Conversation not found" });
+
+    const sellerId = conv.seller;
+    const seller = await db.collection("users").findOne({ _id: sellerId });
+
+    const message = {
+      conversationId,
+      sender: sellerId,
+      senderId: sellerId,
+      senderName: seller?.name || "Owner",
+      senderType: "seller",
+      text: "pong",
+      message: "pong",
+      createdAt: new Date(),
+      readBy: [{ userId: sellerId, readAt: new Date() }],
+    } as any;
+
+    const result = await db.collection("messages").insertOne(message);
+    await db.collection("conversations").updateOne({ _id: new ObjectId(conversationId) }, { $set: { lastMessageAt: new Date() } });
+
+    res.json({ ok: true, messageId: result.insertedId.toString() });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 };
