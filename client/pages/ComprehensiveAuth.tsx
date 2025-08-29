@@ -109,37 +109,9 @@ const ComprehensiveAuth = () => {
 
       console.log(`Making ${isLogin ? "login" : "registration"} request...`);
 
-      const response = await fetch(`/api/${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const { data } = await api.post(endpoint, payload);
 
-      let data;
-      try {
-        // Use response.json() directly instead of text() + parse to avoid body stream issues
-        if (
-          response.headers.get("content-type")?.includes("application/json")
-        ) {
-          data = await response.json();
-        } else {
-          // Handle non-JSON responses
-          const text = await response.text();
-          try {
-            data = JSON.parse(text);
-          } catch {
-            data = { success: false, error: text || "Invalid response format" };
-          }
-        }
-        console.log("Parsed response:", data);
-      } catch (parseError) {
-        console.error("Failed to parse response:", parseError);
-        throw new Error("Invalid response format from server");
-      }
-
-      if (response.ok && data.success) {
+      if (data.success) {
         const { token, user } = data.data;
 
         if (!isLogin) {
