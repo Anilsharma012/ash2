@@ -201,12 +201,12 @@ export default function Conversations() {
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    window.history.pushState({}, "", `/conversations?id=${conversation._id}`);
+    window.history.pushState({}, "", `/chats?id=${conversation._id}`);
   };
 
   const handleBackToList = () => {
     setSelectedConversation(null);
-    window.history.pushState({}, "", "/conversations");
+    window.history.pushState({}, "", "/chats");
   };
 
   const formatTime = (dateString: string) => {
@@ -462,11 +462,8 @@ export default function Conversations() {
           <div className="text-center py-20">
             <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No conversations yet
+              No chats yet—open a property and tap Message Owner
             </h3>
-            <p className="text-gray-600 mb-4">
-              Start chatting with property owners by visiting property listings.
-            </p>
             <Button
               onClick={() => (window.location.href = "/")}
               className="bg-[#C70000] hover:bg-[#A60000]"
