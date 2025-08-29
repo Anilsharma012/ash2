@@ -230,7 +230,7 @@ export default function PropertyDetail() {
 
       setStartingChat(true);
       // Create or get conversation
-      const response = await (window as any).api(
+      let response = await (window as any).api(
         `conversations`,
         {
           method: "POST",
@@ -244,10 +244,31 @@ export default function PropertyDetail() {
         },
       );
 
+      // Fallback to explicit find-or-create if needed
+      if (!response.success) {
+        response = await (window as any).api(
+          `conversations/find-or-create`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: {
+              propertyId: property._id,
+            },
+          },
+        );
+      }
+
       if (response.success) {
         // Navigate to conversation page with normalized conversation ID
-        const rawId = response.data?._id;
-        const convId = typeof rawId === "string" ? rawId : (rawId?.$oid || rawId?.oid || (rawId?.toString ? rawId.toString() : String(rawId)));
+        const raw = response.data?._id || response.data?.conversationId || response.json?.data?._id || response.json?.data?.conversationId;
+        const convId = typeof raw === "string" ? raw : (raw?.$oid || raw?.oid || (raw?.toString ? raw.toString() : String(raw)));
+        if (!convId || convId === "undefined") {
+          toast({ title: "Error", description: "Invalid conversation id", variant: "destructive" });
+          return;
+        }
         navigate(`/conversation/${convId}`);
       } else {
         toast({
