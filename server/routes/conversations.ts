@@ -413,8 +413,13 @@ export const sendMessageToConversation: RequestHandler = async (req, res) => {
       return res.status(403).json({ success: false, error: "Access denied" });
     }
 
-    // Get user details
-    const user = await db.collection("users").findOne({ _id: userId });
+    // Get user details (support both ObjectId and string _id)
+    const user = await db.collection("users").findOne({
+      $or: [
+        { _id: ObjectId.isValid(userId) ? new ObjectId(userId) : undefined },
+        { _id: userId },
+      ].filter((q: any) => q._id !== undefined),
+    } as any);
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
