@@ -394,91 +394,64 @@ export const sendMessageToConversation: RequestHandler = async (req, res) => {
     const { text, imageUrl } = req.body;
 
     if (!text && !imageUrl) {
-      return res.status(400).json({
-        success: false,
-        error: "Either text or imageUrl is required",
-      });
+      return res.status(400).json({ success: false, error: "Either text or imageUrl is required" });
+    }
+
+    // Rate limit
+    if (!canSend(userId)) {
+      return res.status(429).json({ success: false, error: "Too many messages. Please wait a moment." });
     }
 
     if (!ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid conversation ID",
-      });
+      return res.status(400).json({ success: false, error: "Invalid conversation ID" });
     }
 
     // Check if user is participant in conversation
-    const conversation = await db.collection("conversations").findOne({
-      _id: new ObjectId(id),
-      participants: userId,
-    });
+    const conversation = await db.collection("conversations").findOne({ _id: new ObjectId(id), participants: userId });
 
     if (!conversation) {
-      return res.status(403).json({
-        success: false,
-        error: "Access denied",
-      });
+      return res.status(403).json({ success: false, error: "Access denied" });
     }
 
     // Get user details
     const user = await db.collection("users").findOne({ _id: userId });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found",
-      });
+      return res.status(404).json({ success: false, error: "User not found" });
     }
+
+    const safeText = sanitizeText(text || "");
 
     // Create message
     const newMessage = {
       conversationId: id,
       sender: userId,
-      senderId: userId,  // for backward compatibility
+      senderId: userId, // backward compatibility
       senderName: user.name,
       senderType: user.userType || "buyer",
-      text: text || "",
-      message: text || "",  // for backward compatibility
+      text: safeText,
+      message: safeText,
       imageUrl: imageUrl || null,
       messageType: imageUrl ? "image" : "text",
-      readBy: [
-        {
-          userId: userId,
-          readAt: new Date(),
-        },
-      ],
+      readBy: [{ userId, readAt: new Date() }],
       createdAt: new Date(),
     };
 
     const messageResult = await db.collection("messages").insertOne(newMessage);
 
-    // Update conversation last message timestamp
+    // Update conversation last message timestamp and preview
     await db.collection("conversations").updateOne(
       { _id: new ObjectId(id) },
-      {
-        $set: {
-          lastMessageAt: new Date(),
-          updatedAt: new Date(),
-        },
-      },
+      { $set: { lastMessageAt: new Date(), updatedAt: new Date(), lastMessage: { text: newMessage.text, senderId: userId, createdAt: newMessage.createdAt } } }
     );
 
     // Emit real-time message via Socket.io
     const socketServer = getSocketServer();
     if (socketServer) {
-      const messageWithId = {
-        ...newMessage,
-        _id: messageResult.insertedId,
-      };
+      const messageWithId = { ...newMessage, _id: messageResult.insertedId } as any;
       socketServer.emitNewMessage(conversation, messageWithId);
     }
 
-    const response: ApiResponse<any> = {
-      success: true,
-      data: {
-        _id: messageResult.insertedId,
-        ...newMessage,
-      },
-    };
+    const response: ApiResponse<any> = { success: true, data: { _id: messageResult.insertedId, ...newMessage } };
 
     res.status(201).json(response);
   } catch (error) {
