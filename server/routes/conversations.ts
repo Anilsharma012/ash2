@@ -462,3 +462,36 @@ export const sendMessageToConversation: RequestHandler = async (req, res) => {
     });
   }
 };
+
+export const markConversationRead: RequestHandler = async (req, res) => {
+  try {
+    const db = getDatabase();
+    const userId = (req as any).userId;
+    const { id } = req.params as any;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: "Invalid conversation ID" });
+    }
+
+    const conversation = await db.collection("conversations").findOne({ _id: new ObjectId(id), participants: userId });
+    if (!conversation) {
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
+    await db.collection("messages").updateMany(
+      {
+        conversationId: id,
+        senderId: { $ne: userId },
+        "readBy.userId": { $ne: userId },
+      },
+      {
+        $push: { readBy: { userId, readAt: new Date() } },
+      }
+    );
+
+    res.json({ success: true, data: { conversationId: id } });
+  } catch (error) {
+    console.error("Error marking conversation read:", error);
+    res.status(500).json({ success: false, error: "Failed to mark as read" });
+  }
+};
