@@ -83,6 +83,11 @@ function api(p: string, o: any = {}) {
       }
     });
 
+  // Force XHR transport if requested
+  if (o.transport === "xhr") {
+    return xhrFallback().then((res) => ({ ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any));
+  }
+
   try {
     return doFetch()
       .then(async (r) => {
