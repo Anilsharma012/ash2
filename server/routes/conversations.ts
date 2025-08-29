@@ -4,6 +4,26 @@ import { ObjectId } from "mongodb";
 import { ApiResponse } from "@shared/types";
 import { getSocketServer } from "../index";
 
+// Simple in-memory rate limiter: userId -> timestamps
+const messageRateMap: Map<string, number[]> = new Map();
+const now = () => Date.now();
+const WINDOW_MS = 30 * 1000; // 30s
+const MAX_MSGS = 10; // 10 messages/30s
+function canSend(userId: string): boolean {
+  const ts = now();
+  const arr = messageRateMap.get(userId) || [];
+  const filtered = arr.filter((t) => ts - t < WINDOW_MS);
+  if (filtered.length >= MAX_MSGS) return false;
+  filtered.push(ts);
+  messageRateMap.set(userId, filtered);
+  return true;
+}
+function sanitizeText(input: string): string {
+  if (!input) return "";
+  const noTags = input.replace(/<[^>]*>/g, "");
+  return noTags.trim().slice(0, 2000);
+}
+
 // POST /conversations/find-or-create - Find existing or create new conversation
 export const findOrCreateConversation: RequestHandler = async (req, res) => {
   try {
