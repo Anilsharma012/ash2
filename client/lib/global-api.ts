@@ -35,13 +35,19 @@ function api(p: string, o: any = {}) {
     console.warn(`⏰ API request timeout after ${timeoutMs}ms:`, url);
   }, timeoutMs);
 
+  const method = (o.method || "GET").toUpperCase();
+  const baseHeaders: Record<string, string> = {
+    ...(o.headers || {}),
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+  };
+  // Only set Content-Type when we actually send a body
+  if (bodyContent && !baseHeaders["Content-Type"]) {
+    baseHeaders["Content-Type"] = "application/json";
+  }
+
   return fetch(url, {
-    method: o.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(o.headers || {}), // Use headers from options first
-      ...(t ? { Authorization: `Bearer ${t}` } : {}),
-    },
+    method,
+    headers: baseHeaders,
     body: bodyContent,
     signal: controller.signal,
     keepalive: !!o.keepalive,
