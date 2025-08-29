@@ -250,6 +250,8 @@ export default function PropertyDetail() {
         description: "Failed to start chat. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setStartingChat(false);
     }
   };
 
