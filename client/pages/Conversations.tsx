@@ -148,6 +148,7 @@ export default function Conversations() {
     try {
       const resp = await (window as any).api(`conversations/${convId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
+        transport: "xhr",
       });
       if (resp.success) {
         const payload = resp.data?.data ?? resp.json?.data ?? resp.data;
