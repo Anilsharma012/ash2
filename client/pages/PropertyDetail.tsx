@@ -610,9 +610,14 @@ export default function PropertyDetail() {
                   <Button
                     className="bg-[#C70000] hover:bg-[#A60000] text-white flex flex-col items-center justify-center space-y-1 py-4"
                     onClick={handleStartChat}
+                    disabled={startingChat}
                   >
-                    <MessageCircle className="h-5 w-5" />
-                    <span className="text-xs">Message</span>
+                    {startingChat ? (
+                      <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <MessageCircle className="h-5 w-5" />
+                    )}
+                    <span className="text-xs">{startingChat ? "Starting" : "Message"}</span>
                   </Button>
 
                   <Button
