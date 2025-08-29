@@ -170,7 +170,9 @@ const ComprehensiveAuth = () => {
     setError("");
 
     try {
-      const { data } = await api.post("auth/send-otp", { phone: formData.phone });
+      const { data } = await api.post("auth/send-otp", {
+        phone: formData.phone,
+      });
 
       if (data.success) {
         setOtpSent(true);

@@ -126,7 +126,10 @@ function App() {
                   <Route path="/chat" element={<Chat />} />
                   <Route path="/chat/:conversationId" element={<ChatPage />} />
                   <Route path="/chats" element={<Conversations />} />
-                  <Route path="/conversation/:id" element={<ChatConversation />} />
+                  <Route
+                    path="/conversation/:id"
+                    element={<ChatConversation />}
+                  />
                   <Route path="/test-chat/:id" element={<TestChat />} />
                   <Route path="/dev/chat-test" element={<DevChatTest />} />
                   <Route path="/step3-test" element={<Step3Test />} />

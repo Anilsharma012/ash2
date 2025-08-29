@@ -31,7 +31,9 @@ function api(p: string, o: any = {}) {
   const controller = new AbortController();
   const timeoutMs = typeof o.timeout === "number" ? o.timeout : 15000;
   const timeoutId = setTimeout(() => {
-    try { controller.abort("timeout"); } catch {}
+    try {
+      controller.abort("timeout");
+    } catch {}
     console.warn(`⏰ API request timeout after ${timeoutMs}ms:`, url);
   }, timeoutMs);
 
@@ -45,24 +47,27 @@ function api(p: string, o: any = {}) {
     baseHeaders["Content-Type"] = "application/json";
   }
 
-  const doFetch = () => fetch(url, {
-    method,
-    headers: baseHeaders,
-    body: bodyContent,
-    signal: controller.signal,
-    keepalive: !!o.keepalive,
-    credentials: o.credentials || "same-origin",
-    mode: "cors",
-    cache: o.cache || "no-store",
-    referrerPolicy: "no-referrer",
-  });
+  const doFetch = () =>
+    fetch(url, {
+      method,
+      headers: baseHeaders,
+      body: bodyContent,
+      signal: controller.signal,
+      keepalive: !!o.keepalive,
+      credentials: o.credentials || "same-origin",
+      mode: "cors",
+      cache: o.cache || "no-store",
+      referrerPolicy: "no-referrer",
+    });
 
   const xhrFallback = () =>
     new Promise<{ ok: boolean; status: number; data: any }>((resolve) => {
       try {
         const xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
-        Object.entries(baseHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+        Object.entries(baseHeaders).forEach(([k, v]) =>
+          xhr.setRequestHeader(k, v),
+        );
         xhr.timeout = timeoutMs;
         xhr.onreadystatechange = () => {
           if (xhr.readyState === 4) {
@@ -72,20 +77,43 @@ function api(p: string, o: any = {}) {
             } catch {
               parsed = { raw: xhr.responseText };
             }
-            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data: parsed });
+            resolve({
+              ok: xhr.status >= 200 && xhr.status < 300,
+              status: xhr.status,
+              data: parsed,
+            });
           }
         };
-        xhr.ontimeout = () => resolve({ ok: false, status: 408, data: { error: "Request timeout" } });
-        xhr.onerror = () => resolve({ ok: false, status: 0, data: { error: "Network error" } });
+        xhr.ontimeout = () =>
+          resolve({
+            ok: false,
+            status: 408,
+            data: { error: "Request timeout" },
+          });
+        xhr.onerror = () =>
+          resolve({ ok: false, status: 0, data: { error: "Network error" } });
         xhr.send(bodyContent || null);
       } catch (e: any) {
-        resolve({ ok: false, status: 0, data: { error: e?.message || "Network error" } });
+        resolve({
+          ok: false,
+          status: 0,
+          data: { error: e?.message || "Network error" },
+        });
       }
     });
 
   // Force XHR transport if requested
   if (o.transport === "xhr") {
-    return xhrFallback().then((res) => ({ ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any));
+    return xhrFallback().then(
+      (res) =>
+        ({
+          ok: res.ok,
+          status: res.status,
+          success: res.ok,
+          data: res.data,
+          json: res.data,
+        }) as any,
+    );
   }
 
   try {
@@ -93,7 +121,11 @@ function api(p: string, o: any = {}) {
       .then(async (r) => {
         clearTimeout(timeoutId);
 
-        console.log("✅ Global API response", { url, status: r.status, ok: r.ok });
+        console.log("✅ Global API response", {
+          url,
+          status: r.status,
+          ok: r.ok,
+        });
         const { ok, status, data } = await safeReadResponse(r);
         return { ok, status, success: ok, data, json: data };
       })
@@ -103,17 +135,28 @@ function api(p: string, o: any = {}) {
           console.warn("⚠️ fetch failed, attempting XHR fallback:", url);
           const res = await xhrFallback();
           clearTimeout(timeoutId);
-          return { ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any;
+          return {
+            ok: res.ok,
+            status: res.status,
+            success: res.ok,
+            data: res.data,
+            json: res.data,
+          } as any;
         }
 
         clearTimeout(timeoutId);
-        if (error.name === "AbortError" || error?.message?.includes("aborted")) {
+        if (
+          error.name === "AbortError" ||
+          error?.message?.includes("aborted")
+        ) {
           const timeoutError = new Error(`Request timeout: ${url}`);
           timeoutError.name = "TimeoutError";
           throw timeoutError;
         }
 
-        const networkError = new Error(`Network error: Cannot connect to server at ${url}`);
+        const networkError = new Error(
+          `Network error: Cannot connect to server at ${url}`,
+        );
         networkError.name = "NetworkError";
         throw networkError;
       });
@@ -122,7 +165,13 @@ function api(p: string, o: any = {}) {
     console.warn("⚠️ fetch threw synchronously, using XHR fallback:", url);
     return xhrFallback().then((res) => {
       clearTimeout(timeoutId);
-      return { ok: res.ok, status: res.status, success: res.ok, data: res.data, json: res.data } as any;
+      return {
+        ok: res.ok,
+        status: res.status,
+        success: res.ok,
+        data: res.data,
+        json: res.data,
+      } as any;
     });
   }
 }

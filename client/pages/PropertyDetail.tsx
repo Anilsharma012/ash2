@@ -166,14 +166,26 @@ export default function PropertyDetail() {
       const url = `/api/analytics/view/${id}`;
       // Prefer Beacon API for fire-and-forget
       if (navigator.sendBeacon) {
-        const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: "application/json" });
+        const blob = new Blob([JSON.stringify({ ts: Date.now() })], {
+          type: "application/json",
+        });
         navigator.sendBeacon(url, blob);
         return;
       }
       // Fallback with keepalive + short timeout
       const controller = new AbortController();
-      const to = setTimeout(() => { try { controller.abort("timeout"); } catch {} }, 3000);
-      await fetch(url, { method: "POST", keepalive: true, signal: controller.signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ts: Date.now() }) });
+      const to = setTimeout(() => {
+        try {
+          controller.abort("timeout");
+        } catch {}
+      }, 3000);
+      await fetch(url, {
+        method: "POST",
+        keepalive: true,
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ts: Date.now() }),
+      });
       clearTimeout(to);
     } catch (error: any) {
       // Quietly ignore analytics timeouts/network issues
@@ -185,10 +197,17 @@ export default function PropertyDetail() {
     const url = `/api/analytics/phone/${id}`;
     try {
       if (navigator.sendBeacon) {
-        const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: "application/json" });
+        const blob = new Blob([JSON.stringify({ ts: Date.now() })], {
+          type: "application/json",
+        });
         navigator.sendBeacon(url, blob);
       } else {
-        fetch(url, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ts: Date.now() }) }).catch(() => {});
+        fetch(url, {
+          method: "POST",
+          keepalive: true,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ts: Date.now() }),
+        }).catch(() => {});
       }
     } catch {}
     window.open(`tel:${phoneNumber}`, "_self");
@@ -230,9 +249,20 @@ export default function PropertyDetail() {
 
       setStartingChat(true);
       // Create or get conversation
-      let response = await (window as any).api(
-        `conversations`,
-        {
+      let response = await (window as any).api(`conversations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: {
+          propertyId: property._id,
+        },
+      });
+
+      // Fallback to explicit find-or-create if needed
+      if (!response.success) {
+        response = await (window as any).api(`conversations/find-or-create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -241,32 +271,28 @@ export default function PropertyDetail() {
           body: {
             propertyId: property._id,
           },
-        },
-      );
-
-      // Fallback to explicit find-or-create if needed
-      if (!response.success) {
-        response = await (window as any).api(
-          `conversations/find-or-create`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: {
-              propertyId: property._id,
-            },
-          },
-        );
+        });
       }
 
       if (response.success) {
         // Navigate to conversation page with normalized conversation ID
-        const raw = response.data?._id || response.data?.conversationId || response.json?.data?._id || response.json?.data?.conversationId;
-        const convId = typeof raw === "string" ? raw : (raw?.$oid || raw?.oid || (raw?.toString ? raw.toString() : String(raw)));
+        const raw =
+          response.data?._id ||
+          response.data?.conversationId ||
+          response.json?.data?._id ||
+          response.json?.data?.conversationId;
+        const convId =
+          typeof raw === "string"
+            ? raw
+            : raw?.$oid ||
+              raw?.oid ||
+              (raw?.toString ? raw.toString() : String(raw));
         if (!convId || convId === "undefined") {
-          toast({ title: "Error", description: "Invalid conversation id", variant: "destructive" });
+          toast({
+            title: "Error",
+            description: "Invalid conversation id",
+            variant: "destructive",
+          });
           return;
         }
         navigate(`/conversation/${convId}`);
@@ -364,7 +390,12 @@ export default function PropertyDetail() {
               <Button variant="ghost" size="sm">
                 <Share2 className="h-4 w-4" />
               </Button>
-              <Button size="sm" disabled={startingChat} className="bg-[#C70000] hover:bg-[#A60000] text-white" onClick={handleStartChat}>
+              <Button
+                size="sm"
+                disabled={startingChat}
+                className="bg-[#C70000] hover:bg-[#A60000] text-white"
+                onClick={handleStartChat}
+              >
                 {startingChat ? (
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1" />
                 ) : (
@@ -607,7 +638,9 @@ export default function PropertyDetail() {
                     ) : (
                       <MessageCircle className="h-4 w-4" />
                     )}
-                    <span>{startingChat ? "Starting..." : "Message Owner"}</span>
+                    <span>
+                      {startingChat ? "Starting..." : "Message Owner"}
+                    </span>
                   </Button>
 
                   <Button
@@ -651,7 +684,9 @@ export default function PropertyDetail() {
                     ) : (
                       <MessageCircle className="h-5 w-5" />
                     )}
-                    <span className="text-xs">{startingChat ? "Starting" : "Message"}</span>
+                    <span className="text-xs">
+                      {startingChat ? "Starting" : "Message"}
+                    </span>
                   </Button>
 
                   <Button

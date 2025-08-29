@@ -25,7 +25,7 @@ export const safeReadResponse = async <T = any>(
       try {
         data = JSON.parse(responseText);
       } catch {
-        data = (responseText as unknown) as T;
+        data = responseText as unknown as T;
       }
     }
   } catch (parseError) {

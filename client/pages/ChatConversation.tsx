@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Phone, MoreVertical, Circle, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  Phone,
+  MoreVertical,
+  Circle,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -44,7 +51,7 @@ export default function ChatConversation() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
-  
+
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -52,7 +59,7 @@ export default function ChatConversation() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [error, setError] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when new messages arrive
@@ -70,19 +77,19 @@ export default function ChatConversation() {
 
     const socketConnection = io(window.location.origin, {
       auth: {
-        token: token
-      }
+        token: token,
+      },
     });
 
     setSocket(socketConnection);
 
     // Join conversation room when conversation is loaded
     if (id && id !== "undefined") {
-      socketConnection.emit('join-conversation', id);
+      socketConnection.emit("join-conversation", id);
     }
 
     // Listen for new messages
-    socketConnection.on('message:new', (messageData) => {
+    socketConnection.on("message:new", (messageData) => {
       if (messageData.conversation === id) {
         const newMsg: Message = {
           _id: messageData._id,
@@ -90,11 +97,11 @@ export default function ChatConversation() {
           sender: messageData.sender,
           senderId: messageData.sender,
           text: messageData.text,
-          createdAt: new Date(messageData.createdAt)
+          createdAt: new Date(messageData.createdAt),
         };
 
-        setMessages(prev => {
-          if (prev.find(m => m._id === newMsg._id)) {
+        setMessages((prev) => {
+          if (prev.find((m) => m._id === newMsg._id)) {
             return prev;
           }
           return [...prev, newMsg];
@@ -102,17 +109,17 @@ export default function ChatConversation() {
       }
     });
 
-    socketConnection.on('connect', () => {
-      console.log('Socket.io connected');
+    socketConnection.on("connect", () => {
+      console.log("Socket.io connected");
     });
 
-    socketConnection.on('disconnect', () => {
-      console.log('Socket.io disconnected');
+    socketConnection.on("disconnect", () => {
+      console.log("Socket.io disconnected");
     });
 
     return () => {
       if (id && id !== "undefined") {
-        socketConnection.emit('leave-conversation', id);
+        socketConnection.emit("leave-conversation", id);
       }
       socketConnection.disconnect();
     };
@@ -205,7 +212,14 @@ export default function ChatConversation() {
   }, [id, isAuthenticated, token]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !id || id === "undefined" || sendingMessage || !token) return;
+    if (
+      !newMessage.trim() ||
+      !id ||
+      id === "undefined" ||
+      sendingMessage ||
+      !token
+    )
+      return;
 
     setSendingMessage(true);
     setError("");
@@ -259,9 +273,16 @@ export default function ChatConversation() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Conversation not found</h2>
-          <p className="text-gray-600 mb-4">The conversation you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate("/chats")} className="bg-[#C70000] hover:bg-[#A60000] text-white">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Conversation not found
+          </h2>
+          <p className="text-gray-600 mb-4">
+            The conversation you're looking for doesn't exist.
+          </p>
+          <Button
+            onClick={() => navigate("/chats")}
+            className="bg-[#C70000] hover:bg-[#A60000] text-white"
+          >
             Back to Chats
           </Button>
         </div>
@@ -270,7 +291,10 @@ export default function ChatConversation() {
   }
 
   // Determine other participant
-  const otherParticipant = conversation.buyer === user?.id ? conversation.sellerData : conversation.buyerData;
+  const otherParticipant =
+    conversation.buyer === user?.id
+      ? conversation.sellerData
+      : conversation.buyerData;
   const property = conversation.property;
 
   // Mark conversation as read on focus
@@ -382,11 +406,11 @@ export default function ChatConversation() {
                 } shadow-sm`}
               >
                 <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                <div className={`flex items-center gap-2 text-xs mt-1 ${isMe ? "text-red-100" : "text-gray-500"}`}>
+                <div
+                  className={`flex items-center gap-2 text-xs mt-1 ${isMe ? "text-red-100" : "text-gray-500"}`}
+                >
                   <span>{formatTime(message.createdAt)}</span>
-                  {isMe && (
-                    <span>{isRead ? "✓✓" : "✓"}</span>
-                  )}
+                  {isMe && <span>{isRead ? "✓✓" : "✓"}</span>}
                 </div>
               </div>
             </div>
@@ -412,10 +436,17 @@ export default function ChatConversation() {
                   return;
                 }
                 // Attachments upload not implemented; show toast
-                toast({ title: "Attachments coming soon", description: file.name });
+                toast({
+                  title: "Attachments coming soon",
+                  description: file.name,
+                });
               }}
             />
-            <Button variant="outline" className="px-2" onClick={() => document.getElementById("file-input")?.click()}>
+            <Button
+              variant="outline"
+              className="px-2"
+              onClick={() => document.getElementById("file-input")?.click()}
+            >
               📎
             </Button>
             <Textarea

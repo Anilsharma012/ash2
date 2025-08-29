@@ -58,7 +58,14 @@ export const findOrCreateConversation: RequestHandler = async (req, res) => {
     }
 
     // Check multiple fields for seller info as per your spec
-    const sellerId = property.owner || property.seller || property.postedBy || property.user || property.createdBy || property.ownerId || property.sellerId;
+    const sellerId =
+      property.owner ||
+      property.seller ||
+      property.postedBy ||
+      property.user ||
+      property.createdBy ||
+      property.ownerId ||
+      property.sellerId;
 
     if (!sellerId) {
       return res.status(400).json({
@@ -68,7 +75,8 @@ export const findOrCreateConversation: RequestHandler = async (req, res) => {
     }
 
     // Convert sellerId to string for comparison if it's ObjectId
-    const sellerIdStr = typeof sellerId === 'object' ? sellerId.toString() : sellerId;
+    const sellerIdStr =
+      typeof sellerId === "object" ? sellerId.toString() : sellerId;
 
     if (sellerIdStr === buyerId) {
       return res.status(400).json({
@@ -133,25 +141,47 @@ export const createConversation: RequestHandler = async (req, res) => {
     const { propertyId, participants, ownerId } = req.body;
 
     if (!propertyId || !ObjectId.isValid(propertyId)) {
-      return res.status(400).json({ success: false, error: "Invalid property ID" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid property ID" });
     }
 
-    const property = await db.collection("properties").findOne({ _id: new ObjectId(propertyId) });
+    const property = await db
+      .collection("properties")
+      .findOne({ _id: new ObjectId(propertyId) });
     if (!property) {
-      return res.status(404).json({ success: false, error: "Property not found" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Property not found" });
     }
 
-    const resolvedOwner = property.owner || property.seller || property.postedBy || property.user || property.createdBy || property.ownerId || property.sellerId;
-    const sellerId = typeof resolvedOwner === 'object' ? resolvedOwner.toString() : resolvedOwner;
+    const resolvedOwner =
+      property.owner ||
+      property.seller ||
+      property.postedBy ||
+      property.user ||
+      property.createdBy ||
+      property.ownerId ||
+      property.sellerId;
+    const sellerId =
+      typeof resolvedOwner === "object"
+        ? resolvedOwner.toString()
+        : resolvedOwner;
 
     if (ownerId && ownerId !== sellerId) {
-      return res.status(400).json({ success: false, error: "ownerId does not match property owner" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: "ownerId does not match property owner",
+        });
     }
 
     // Prefer participants if provided, else default to buyer + seller
-    const allParticipants = Array.isArray(participants) && participants.length
-      ? [...new Set([userId, ...participants])]
-      : [userId, sellerId].filter(Boolean);
+    const allParticipants =
+      Array.isArray(participants) && participants.length
+        ? [...new Set([userId, ...participants])]
+        : [userId, sellerId].filter(Boolean);
 
     // Check for existing conversation (support both schemas)
     const existingConversation = await db.collection("conversations").findOne({
@@ -162,7 +192,10 @@ export const createConversation: RequestHandler = async (req, res) => {
     });
 
     if (existingConversation) {
-      return res.json({ success: true, data: { _id: existingConversation._id } });
+      return res.json({
+        success: true,
+        data: { _id: existingConversation._id },
+      });
     }
 
     // Create new conversation with normalized fields
@@ -177,9 +210,14 @@ export const createConversation: RequestHandler = async (req, res) => {
       updatedAt: new Date(),
     };
 
-    const result = await db.collection("conversations").insertOne(newConversation);
+    const result = await db
+      .collection("conversations")
+      .insertOne(newConversation);
 
-    const response: ApiResponse<any> = { success: true, data: { _id: result.insertedId } };
+    const response: ApiResponse<any> = {
+      success: true,
+      data: { _id: result.insertedId },
+    };
 
     res.status(201).json(response);
   } catch (error) {
@@ -205,7 +243,7 @@ export const getMyConversations: RequestHandler = async (req, res) => {
             $or: [
               { buyer: userId },
               { seller: userId },
-              { participants: userId }  // fallback for old format
+              { participants: userId }, // fallback for old format
             ],
           },
         },
@@ -330,11 +368,15 @@ export const getConversationMessages: RequestHandler = async (req, res) => {
     const limitNum = parseInt(limit as string);
 
     if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: "Invalid conversation ID" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid conversation ID" });
     }
 
     // Check if user is participant in conversation
-    const conversation = await db.collection("conversations").findOne({ _id: new ObjectId(id), participants: userId });
+    const conversation = await db
+      .collection("conversations")
+      .findOne({ _id: new ObjectId(id), participants: userId });
 
     if (!conversation) {
       return res.status(403).json({ success: false, error: "Access denied" });
@@ -394,20 +436,31 @@ export const sendMessageToConversation: RequestHandler = async (req, res) => {
     const { text, imageUrl } = req.body;
 
     if (!text && !imageUrl) {
-      return res.status(400).json({ success: false, error: "Either text or imageUrl is required" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Either text or imageUrl is required" });
     }
 
     // Rate limit
     if (!canSend(userId)) {
-      return res.status(429).json({ success: false, error: "Too many messages. Please wait a moment." });
+      return res
+        .status(429)
+        .json({
+          success: false,
+          error: "Too many messages. Please wait a moment.",
+        });
     }
 
     if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: "Invalid conversation ID" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid conversation ID" });
     }
 
     // Check if user is participant in conversation
-    const conversation = await db.collection("conversations").findOne({ _id: new ObjectId(id), participants: userId });
+    const conversation = await db
+      .collection("conversations")
+      .findOne({ _id: new ObjectId(id), participants: userId });
 
     if (!conversation) {
       return res.status(403).json({ success: false, error: "Access denied" });
@@ -444,19 +497,37 @@ export const sendMessageToConversation: RequestHandler = async (req, res) => {
     const messageResult = await db.collection("messages").insertOne(newMessage);
 
     // Update conversation last message timestamp and preview
-    await db.collection("conversations").updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { lastMessageAt: new Date(), updatedAt: new Date(), lastMessage: { text: newMessage.text, senderId: userId, createdAt: newMessage.createdAt } } }
-    );
+    await db
+      .collection("conversations")
+      .updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            lastMessageAt: new Date(),
+            updatedAt: new Date(),
+            lastMessage: {
+              text: newMessage.text,
+              senderId: userId,
+              createdAt: newMessage.createdAt,
+            },
+          },
+        },
+      );
 
     // Emit real-time message via Socket.io
     const socketServer = getSocketServer();
     if (socketServer) {
-      const messageWithId = { ...newMessage, _id: messageResult.insertedId } as any;
+      const messageWithId = {
+        ...newMessage,
+        _id: messageResult.insertedId,
+      } as any;
       socketServer.emitNewMessage(conversation, messageWithId);
     }
 
-    const response: ApiResponse<any> = { success: true, data: { _id: messageResult.insertedId, ...newMessage } };
+    const response: ApiResponse<any> = {
+      success: true,
+      data: { _id: messageResult.insertedId, ...newMessage },
+    };
 
     res.status(201).json(response);
   } catch (error) {
@@ -475,10 +546,14 @@ export const markConversationRead: RequestHandler = async (req, res) => {
     const { id } = req.params as any;
 
     if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: "Invalid conversation ID" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid conversation ID" });
     }
 
-    const conversation = await db.collection("conversations").findOne({ _id: new ObjectId(id), participants: userId });
+    const conversation = await db
+      .collection("conversations")
+      .findOne({ _id: new ObjectId(id), participants: userId });
     if (!conversation) {
       return res.status(403).json({ success: false, error: "Access denied" });
     }
@@ -491,7 +566,7 @@ export const markConversationRead: RequestHandler = async (req, res) => {
       },
       {
         $push: { readBy: { userId, readAt: new Date() } },
-      }
+      },
     );
 
     res.json({ success: true, data: { conversationId: id } });

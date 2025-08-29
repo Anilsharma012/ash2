@@ -87,12 +87,18 @@ export default function Conversations() {
     if (typeof val === "string") return val;
     if ((val as any).$oid) return (val as any).$oid;
     if ((val as any).oid) return (val as any).oid;
-    try { return String((val as any).toString()); } catch { return String(val); }
+    try {
+      return String((val as any).toString());
+    } catch {
+      return String(val);
+    }
   };
 
   useEffect(() => {
     if (conversationId && conversations.length > 0) {
-      const conv = conversations.find((c) => normalizeId(c._id) === conversationId);
+      const conv = conversations.find(
+        (c) => normalizeId(c._id) === conversationId,
+      );
       if (conv) {
         setSelectedConversation(conv);
       }
@@ -104,10 +110,7 @@ export default function Conversations() {
       const cid = normalizeId(selectedConversation._id);
       fetchMessages(cid);
       // Start polling for new messages every 5 seconds
-      const interval = setInterval(
-        () => fetchMessages(cid),
-        5000,
-      );
+      const interval = setInterval(() => fetchMessages(cid), 5000);
       setPollInterval(interval);
       return () => clearInterval(interval);
     }
@@ -123,27 +126,43 @@ export default function Conversations() {
 
   const xhr = (method: string, endpoint: string, body?: any) => {
     const url = createApiUrl(endpoint);
-    return new Promise<{ ok: boolean; status: number; data: any }>((resolve) => {
-      try {
-        const x = new XMLHttpRequest();
-        x.open(method.toUpperCase(), url, true);
-        if (token) x.setRequestHeader("Authorization", `Bearer ${token}`);
-        if (body) x.setRequestHeader("Content-Type", "application/json");
-        x.timeout = 12000;
-        x.onreadystatechange = () => {
-          if (x.readyState === 4) {
-            let parsed: any = {};
-            try { parsed = x.responseText ? JSON.parse(x.responseText) : {}; } catch { parsed = { raw: x.responseText }; }
-            resolve({ ok: x.status >= 200 && x.status < 300, status: x.status, data: parsed });
-          }
-        };
-        x.ontimeout = () => resolve({ ok: false, status: 408, data: { error: "timeout" } });
-        x.onerror = () => resolve({ ok: false, status: 0, data: { error: "network" } });
-        x.send(body ? JSON.stringify(body) : null);
-      } catch (e: any) {
-        resolve({ ok: false, status: 0, data: { error: e?.message || "network" } });
-      }
-    });
+    return new Promise<{ ok: boolean; status: number; data: any }>(
+      (resolve) => {
+        try {
+          const x = new XMLHttpRequest();
+          x.open(method.toUpperCase(), url, true);
+          if (token) x.setRequestHeader("Authorization", `Bearer ${token}`);
+          if (body) x.setRequestHeader("Content-Type", "application/json");
+          x.timeout = 12000;
+          x.onreadystatechange = () => {
+            if (x.readyState === 4) {
+              let parsed: any = {};
+              try {
+                parsed = x.responseText ? JSON.parse(x.responseText) : {};
+              } catch {
+                parsed = { raw: x.responseText };
+              }
+              resolve({
+                ok: x.status >= 200 && x.status < 300,
+                status: x.status,
+                data: parsed,
+              });
+            }
+          };
+          x.ontimeout = () =>
+            resolve({ ok: false, status: 408, data: { error: "timeout" } });
+          x.onerror = () =>
+            resolve({ ok: false, status: 0, data: { error: "network" } });
+          x.send(body ? JSON.stringify(body) : null);
+        } catch (e: any) {
+          resolve({
+            ok: false,
+            status: 0,
+            data: { error: e?.message || "network" },
+          });
+        }
+      },
+    );
   };
 
   const fetchConversations = async () => {
@@ -171,7 +190,11 @@ export default function Conversations() {
       const resp = await xhr("GET", `conversations/${convId}/messages`);
       if (resp.ok) {
         const payload = resp.data?.data ?? resp.data;
-        const arr = Array.isArray(payload?.messages) ? payload.messages : Array.isArray(payload) ? payload : [];
+        const arr = Array.isArray(payload?.messages)
+          ? payload.messages
+          : Array.isArray(payload)
+            ? payload
+            : [];
         setMessages(arr);
       } else if (resp.status === 404 || resp.status === 403) {
         setError(resp.data?.error || "Conversation not found");
@@ -188,16 +211,28 @@ export default function Conversations() {
     try {
       setSending(true);
       const convId = normalizeId(selectedConversation._id);
-      let resp = await xhr("POST", `conversations/${convId}/messages`, { text: newMessage });
+      let resp = await xhr("POST", `conversations/${convId}/messages`, {
+        text: newMessage,
+      });
 
       // If conversation id invalid or not found, try to find/create from property and retry once
       if (!resp.ok && (resp.status === 404 || resp.status === 400)) {
-        const propId = (selectedConversation as any)?.property?._id || (selectedConversation as any)?.propertyId;
+        const propId =
+          (selectedConversation as any)?.property?._id ||
+          (selectedConversation as any)?.propertyId;
         if (propId) {
-          const created = await xhr("POST", `conversations/find-or-create`, { propertyId: propId });
-          const newId = created.data?.data?._id || created.data?._id || created.data?.data?.conversationId || created.data?.conversationId;
+          const created = await xhr("POST", `conversations/find-or-create`, {
+            propertyId: propId,
+          });
+          const newId =
+            created.data?.data?._id ||
+            created.data?._id ||
+            created.data?.data?.conversationId ||
+            created.data?.conversationId;
           if (created.ok && newId) {
-            resp = await xhr("POST", `conversations/${newId}/messages`, { text: newMessage });
+            resp = await xhr("POST", `conversations/${newId}/messages`, {
+              text: newMessage,
+            });
           }
         }
       }
@@ -249,15 +284,25 @@ export default function Conversations() {
   };
 
   const filteredConversations = conversations.filter((conversation) => {
-    const property = conversation.property || (conversation as any).propertyDetails?.[0];
-    const othersArray = conversation.participantDetails || [conversation.buyerData, conversation.sellerData].filter(Boolean) as any[] || [];
-    const otherParticipants = othersArray.filter((p: any) => p && p._id !== user?.id);
+    const property =
+      conversation.property || (conversation as any).propertyDetails?.[0];
+    const othersArray =
+      conversation.participantDetails ||
+      ([conversation.buyerData, conversation.sellerData].filter(
+        Boolean,
+      ) as any[]) ||
+      [];
+    const otherParticipants = othersArray.filter(
+      (p: any) => p && p._id !== user?.id,
+    );
 
     const haystacks = [
       property?.title || "",
-      (conversation.lastMessage?.message || conversation.lastMessage?.text || ""),
+      conversation.lastMessage?.message || conversation.lastMessage?.text || "",
       otherParticipants.map((p: any) => p.name || "").join(" "),
-    ].join(" ").toLowerCase();
+    ]
+      .join(" ")
+      .toLowerCase();
 
     return haystacks.includes(searchQuery.toLowerCase());
   });
@@ -302,9 +347,18 @@ export default function Conversations() {
 
   // Individual conversation view
   if (selectedConversation) {
-    const othersArray = selectedConversation.participantDetails || [selectedConversation.buyerData, selectedConversation.sellerData].filter(Boolean) as any[] || [];
-    const otherParticipants = othersArray.filter((p: any) => p && p._id !== user?.id);
-    const property = selectedConversation.property || (selectedConversation as any).propertyDetails?.[0];
+    const othersArray =
+      selectedConversation.participantDetails ||
+      ([selectedConversation.buyerData, selectedConversation.sellerData].filter(
+        Boolean,
+      ) as any[]) ||
+      [];
+    const otherParticipants = othersArray.filter(
+      (p: any) => p && p._id !== user?.id,
+    );
+    const property =
+      selectedConversation.property ||
+      (selectedConversation as any).propertyDetails?.[0];
 
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -490,9 +544,18 @@ export default function Conversations() {
         ) : (
           <div className="space-y-1">
             {filteredConversations.map((conversation) => {
-              const othersArray = conversation.participantDetails || [conversation.buyerData, conversation.sellerData].filter(Boolean) as any[] || [];
-              const otherParticipants = othersArray.filter((p: any) => p && p._id !== user?.id);
-              const property = conversation.property || (conversation as any).propertyDetails?.[0];
+              const othersArray =
+                conversation.participantDetails ||
+                ([conversation.buyerData, conversation.sellerData].filter(
+                  Boolean,
+                ) as any[]) ||
+                [];
+              const otherParticipants = othersArray.filter(
+                (p: any) => p && p._id !== user?.id,
+              );
+              const property =
+                conversation.property ||
+                (conversation as any).propertyDetails?.[0];
 
               return (
                 <div

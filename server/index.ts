@@ -511,7 +511,9 @@ export function createServer() {
         }
 
         console.log("❌ CORS blocked:", origin);
-        return callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
+        return callback(
+          new Error(`CORS policy violation: Origin ${origin} not allowed`),
+        );
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
