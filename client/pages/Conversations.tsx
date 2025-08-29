@@ -115,21 +115,13 @@ export default function Conversations() {
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(createApiUrl("conversations/my"), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const resp = await (window as any).api(`conversations/my`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setConversations(data.data);
-        } else {
-          setError(data.error || "Failed to load conversations");
-        }
+      if (resp.success) {
+        setConversations(resp.data || resp.json?.data || []);
       } else {
-        setError("Failed to load conversations");
+        setError(resp.error || "Failed to load conversations");
       }
     } catch (error) {
       setError("Network error. Please try again.");
@@ -142,20 +134,14 @@ export default function Conversations() {
     if (!token) return;
 
     try {
-      const response = await fetch(
-        createApiUrl(`conversations/${convId}/messages`),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setMessages(data.data);
-        }
+      const resp = await (window as any).api(`conversations/${convId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (resp.success) {
+        const arr = resp.data || resp.json?.data || [];
+        setMessages(Array.isArray(arr.messages) ? arr.messages : arr);
+      } else if (resp.status === 404 || resp.status === 403) {
+        setError(resp.error || "Conversation not found");
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -168,30 +154,22 @@ export default function Conversations() {
 
     try {
       setSending(true);
-      const response = await fetch(
-        createApiUrl(`conversations/${selectedConversation._id}/messages`),
+      const resp = await (window as any).api(
+        `conversations/${selectedConversation._id}/messages`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ text: newMessage }),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: { text: newMessage },
         },
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setMessages((prev) => [...prev, data.data]);
-          setNewMessage("");
-          // Refresh conversations to update last message
-          fetchConversations();
-        } else {
-          setError(data.error || "Failed to send message");
-        }
+      if (resp.success) {
+        const msg = resp.data?.data || resp.data;
+        setMessages((prev) => [...prev, msg]);
+        setNewMessage("");
+        fetchConversations();
       } else {
-        setError("Failed to send message");
+        setError(resp.error || "Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
