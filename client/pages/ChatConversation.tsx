@@ -352,13 +352,13 @@ export default function ChatConversation() {
                 ₹{(property.price / 100000).toFixed(1)}L
               </p>
             </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               className="text-xs"
               onClick={() => navigate(`/property/${property._id}`)}
             >
-              View
+              View Listing
             </Button>
           </div>
         </div>
